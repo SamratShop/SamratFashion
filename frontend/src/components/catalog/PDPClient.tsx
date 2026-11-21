@@ -648,10 +648,11 @@ export function PDPClient({
         )}
       </AnimatePresence>
 
-    <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 max-w-container-max mx-auto w-full pb-28 lg:pb-0">
+    <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 max-w-container-max mx-auto w-full pb-20 lg:pb-12 items-start">
 
-      {/* ─── Image Gallery ─── */}
-      <div className="w-full lg:w-[52%] flex flex-col-reverse md:flex-row gap-3 md:gap-4">
+      {/* ─── Image Gallery & Craftsmanship Column ─── */}
+      <div className="w-full lg:w-[52%] flex flex-col gap-4 lg:sticky lg:top-24 self-start">
+        <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4">
 
         {/* ── Thumbnails ── */}
         {/* Desktop: vertical column on left │ Mobile: horizontal row below main image */}
@@ -919,6 +920,59 @@ export function PDPClient({
           </div>
         </div>
       </div>
+
+      {/* ─── Tailoring Architecture & Garment Specs Card (Fills Left Void) ─── */}
+      <div className="hidden sm:block rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 space-y-4 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+          <h3 className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-neutral-900 inline-block" />
+            <span>Tailoring Architecture &amp; Specifications</span>
+          </h3>
+          <span className="font-mono text-[10px] text-neutral-400 uppercase font-semibold">SAMRAT MENSWEAR</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FABRIC WEAVE</span>
+            <span className="font-bold text-on-surface">{product.fabric || "Textured Woven Cotton Blend"}</span>
+          </div>
+          {product.gsm && product.gsm > 0 ? (
+            <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">WEIGHT</span>
+              <span className="font-bold text-on-surface">{`${product.gsm} GSM`}</span>
+            </div>
+          ) : (
+            <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">ORIGIN</span>
+              <span className="font-bold text-on-surface">Crafted in India</span>
+            </div>
+          )}
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FIT PROFILE</span>
+            <span className="font-bold text-on-surface">{product.fit ? product.fit.replace(/_/g, " ") : "Tailored Regular Fit"}</span>
+          </div>
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">INNER LINING</span>
+            <span className="font-bold text-on-surface">Full Inner Satin Lining</span>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono text-neutral-500">
+          <div className="flex items-center gap-2">
+            <span className="text-neutral-400 uppercase font-bold text-[10px]">MODEL:</span>
+            <span>6&apos;1&quot; (185 cm) wearing size L</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-neutral-400 uppercase font-bold text-[10px]">CARE:</span>
+            <span className="truncate">
+              {product.careInstructions && product.careInstructions.length > 0
+                ? product.careInstructions.join(" · ")
+                : "Dry clean or gentle cold wash"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
 
       {/* Product Details Column */}
       <div className="w-full lg:w-[48%] flex flex-col pt-1 lg:pt-4 pr-0 lg:pr-4 space-y-6">
@@ -1193,50 +1247,6 @@ export function PDPClient({
                 : "BUY NOW · EXPRESS CHECKOUT →"}
             </span>
           </motion.button>
-        </div>
-
-        {/* Garment Specifications Architecture Matrix */}
-        <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low/40 p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-            <h3 className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-neutral-900 inline-block"></span>
-              <span>Garment Specifications</span>
-            </h3>
-            <span className="font-mono text-[10px] text-neutral-500 uppercase font-semibold">SAMRAT FASHION</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FABRIC</span>
-              <span className="font-bold text-on-surface">{product.fabric || "Breathable Woven Cotton Blend"}</span>
-            </div>
-            {product.gsm && product.gsm > 0 ? (
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-                <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">WEIGHT</span>
-                <span className="font-bold text-on-surface">{`${product.gsm} GSM`}</span>
-              </div>
-            ) : (
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-                <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">ORIGIN</span>
-                <span className="font-bold text-on-surface">Crafted in India</span>
-              </div>
-            )}
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FIT</span>
-              <span className="font-bold text-on-surface">{product.fit ? product.fit.replace(/_/g, " ") : "Tailored Regular Fit"}</span>
-            </div>
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">LINING</span>
-              <span className="font-bold text-on-surface">Full Inner Satin Lining</span>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-outline-variant/20 text-[11px] font-mono text-neutral-500 flex items-center gap-2">
-            <span className="text-neutral-400 uppercase font-bold text-[10px]">CARE:</span>
-            <span>
-              {product.careInstructions && product.careInstructions.length > 0
-                ? product.careInstructions.join(" · ")
-                : "Dry clean recommended or gentle cold hand wash · Warm iron on reverse"}
-            </span>
-          </div>
         </div>
 
         {/* Delivery & Customer Assurance */}
