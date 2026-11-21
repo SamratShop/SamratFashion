@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Star,
   Camera,
   ShieldCheck,
   CheckCircle2,
   PenLine,
+  ArrowRight,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -38,6 +40,7 @@ interface ReviewSummary {
 }
 
 export default function ProductReviewsSection({ productId }: { productId: string }) {
+  const router = useRouter();
   const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [summary, setSummary] = useState<ReviewSummary>({
     averageRating: 0,
@@ -46,6 +49,7 @@ export default function ProductReviewsSection({ productId }: { productId: string
   });
   const [photos, setPhotos] = useState<CustomerPhoto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hoverRating, setHoverRating] = useState<number>(0);
 
   useEffect(() => {
     async function fetchReviews() {
@@ -199,73 +203,128 @@ export default function ProductReviewsSection({ productId }: { productId: string
         </div>
       )}
 
-      {/* Public Reviews List or Elegant Empty State */}
+      {/* Public Reviews List or Luxury Empty State */}
       {reviews.length === 0 ? (
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-8 sm:p-12 text-center shadow-xs">
-          <div className="max-w-md mx-auto space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/60 text-amber-500">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
-              ))}
-            </div>
-
-            <div className="space-y-1.5">
-              <h3 className="font-headline-sm text-lg sm:text-xl font-bold text-on-surface">
-                Be the First to Review This Piece
-              </h3>
-              <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-                Have you purchased or worn this garment? Share your feedback on tailored fit, collar posture, and fabric handfeel to assist fellow patrons.
+        <div className="bg-gradient-to-b from-white via-surface-container-lowest to-surface-container-low/20 border border-outline-variant/30 rounded-3xl p-8 sm:p-12 shadow-xs">
+          <div className="max-w-xl mx-auto text-center space-y-5">
+            {/* Interactive Rating Selector */}
+            <div className="inline-flex flex-col items-center gap-2">
+              <div
+                className="flex items-center gap-2 p-2.5 rounded-full bg-amber-50/80 border border-amber-200/60"
+                onMouseLeave={() => setHoverRating(0)}
+              >
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseEnter={() => setHoverRating(s)}
+                    onClick={() => router.push("/account/reviews")}
+                    className="p-1 hover:scale-125 transition-transform cursor-pointer focus:outline-none"
+                    aria-label={`Rate ${s} stars`}
+                  >
+                    <Star
+                      className={`w-6 h-6 transition-colors duration-150 ${
+                        s <= (hoverRating || 5)
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-neutral-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="font-mono text-[11px] text-amber-800 font-semibold tracking-wider">
+                {hoverRating === 5
+                  ? "★ Exceptional Fit & Finish (5/5)"
+                  : hoverRating === 4
+                  ? "★ Premium Quality & Comfort (4/5)"
+                  : hoverRating === 3
+                  ? "★ Satisfactory Standard Fit (3/5)"
+                  : hoverRating === 2
+                  ? "★ Below Expectations (2/5)"
+                  : hoverRating === 1
+                  ? "★ Needs Improvement (1/5)"
+                  : "Rate this piece to guide other gentlemen"}
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="space-y-2">
+              <h3 className="font-headline-sm text-xl sm:text-2xl font-black text-on-surface uppercase tracking-tight">
+                Be the First to Review This Piece
+              </h3>
+              <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed max-w-lg mx-auto">
+                Have you purchased or worn this Nehru jacket? Share your authentic feedback on chest sizing, collar posture, and fabric drape to guide fellow patrons.
+              </p>
+            </div>
+
+            <div className="pt-1">
               <Link
                 href="/account/reviews"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-mono text-xs uppercase font-bold tracking-wider transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-mono text-xs uppercase font-bold tracking-wider transition-all shadow-sm hover:shadow-md active:scale-95"
               >
-                <PenLine className="w-3.5 h-3.5" />
-                <span>Write a Review</span>
+                <PenLine className="w-4 h-4" />
+                <span>Submit Your Verified Review</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <p className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider mt-2">
-                Available for delivered orders
+              <p className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider mt-2.5">
+                Delivered purchase required for verified badge
               </p>
             </div>
           </div>
 
-          {/* 3 Trust pillars */}
-          <div className="mt-10 pt-8 border-t border-outline-variant/20 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left max-w-3xl mx-auto">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-neutral-900">
-                <ShieldCheck className="w-4 h-4" />
+          {/* Sizing & Tailoring Assessment Strip */}
+          <div className="mt-10 pt-8 border-t border-outline-variant/20 grid grid-cols-2 md:grid-cols-4 gap-3 text-center max-w-4xl mx-auto">
+            <div className="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/20">
+              <p className="font-mono text-[10px] uppercase font-bold text-neutral-500">Fit Profile</p>
+              <p className="font-bold text-xs sm:text-sm text-on-surface mt-0.5">True-to-Chest Tailored</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/20">
+              <p className="font-mono text-[10px] uppercase font-bold text-neutral-500">Collar Structure</p>
+              <p className="font-bold text-xs sm:text-sm text-on-surface mt-0.5">Reinforced Mandarin</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/20">
+              <p className="font-mono text-[10px] uppercase font-bold text-neutral-500">Fabric Feel</p>
+              <p className="font-bold text-xs sm:text-sm text-on-surface mt-0.5">Structured Textured Drape</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/20">
+              <p className="font-mono text-[10px] uppercase font-bold text-neutral-500">Recommended For</p>
+              <p className="font-bold text-xs sm:text-sm text-on-surface mt-0.5">Festive &amp; Formal Layering</p>
+            </div>
+          </div>
+
+          {/* 3 Trust pillars in Bento Cards */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-4xl mx-auto">
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/25 shadow-2xs hover:border-neutral-900/30 transition-colors flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wide text-on-surface">100% Verified Orders</h4>
                 <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                  Only genuine purchasers with confirmed delivery can post verified reviews.
+                  Only verified patrons with delivered purchases can publish reviews.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-neutral-900">
-                <CheckCircle2 className="w-4 h-4" />
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/25 shadow-2xs hover:border-neutral-900/30 transition-colors flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wide text-on-surface">True-to-Fit Guidance</h4>
                 <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                  Real chest circumference and shoulder posture impressions from customers.
+                  Real chest and shoulder feedback helps the community find their ideal fit.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-neutral-900">
-                <Camera className="w-4 h-4" />
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/25 shadow-2xs hover:border-neutral-900/30 transition-colors flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wide text-on-surface">Customer Lookbook</h4>
                 <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-                  Upload styled photos of your look to be featured in our lookbook gallery.
+                  Upload styled fit photos to be highlighted across our editorial galleries.
                 </p>
               </div>
             </div>
