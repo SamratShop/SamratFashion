@@ -5,7 +5,7 @@ import { ShopCatalogLayout } from "@/components/catalog/ShopCatalogLayout";
 import { ProductCardProps } from "@/components/catalog/ProductCard";
 import { Suspense } from "react";
 import { getActiveCategories, getActiveThemes, filterStorefrontCategories } from "@/lib/catalog";
-import { getBreadcrumbJsonLd, getCollectionPageJsonLd } from "@/lib/seo";
+import { getBreadcrumbJsonLd, getCollectionPageJsonLd, getFaqPageJsonLd, getCategoryFaqs } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 60;
@@ -92,16 +92,22 @@ export async function generateMetadata({
     description = `Browse results for "${q}" across the Samrat Fashion tailored menswear catalog.`;
   }
 
+  const canonicalPath = cat
+    ? `/shop?category=${encodeURIComponent(cat)}`
+    : theme
+    ? `/shop?theme=${encodeURIComponent(theme)}`
+    : "/shop";
+
   return {
     title,
     description,
     alternates: {
-      canonical: "/shop",
+      canonical: canonicalPath,
     },
     openGraph: {
       title,
       description,
-      url: "/shop",
+      url: canonicalPath,
       type: "website",
     },
   };
@@ -212,25 +218,44 @@ export default async function ShopPage({
   });
 
   const total = rawTotal;
+  const activeCat = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : "";
+  const activeTheme = typeof resolvedSearchParams.theme === "string" ? resolvedSearchParams.theme : "";
   const activeQuery = typeof resolvedSearchParams.search === "string" ? resolvedSearchParams.search : typeof resolvedSearchParams.q === "string" ? resolvedSearchParams.q : "";
   const currentSort = typeof resolvedSearchParams.sort === "string" ? resolvedSearchParams.sort : "";
 
+  const collectionTitle = activeCat
+    ? `${activeCat.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} Menswear Collection`
+    : "Tailored Menswear & Nehru Jackets";
+  const collectionDesc = activeCat
+    ? `Shop the latest ${activeCat} collection online at Samrat Fashion India. Breathable woven fabrics, tailored fits, and fast express shipping.`
+    : "Classic 4-pocket Nehru jackets, coti, and tailored Indian menswear crafted for festive and formal dressing.";
+  const collectionCanonical = activeCat
+    ? `/shop?category=${encodeURIComponent(activeCat)}`
+    : activeTheme
+    ? `/shop?theme=${encodeURIComponent(activeTheme)}`
+    : "/shop";
+
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-3 sm:pt-5 md:pt-8 pb-28 lg:pb-12">
+    <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-3 sm:pt-5 md:pt-8 pb-28 lg:pb-12 outline-none">
       <JsonLd
         id="shop-breadcrumbs-jsonld"
         data={getBreadcrumbJsonLd([
           { name: "Home", url: "/" },
           { name: "Shop", url: "/shop" },
+          ...(activeCat ? [{ name: activeCat.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), url: collectionCanonical }] : []),
         ])}
       />
       <JsonLd
         id="shop-collection-jsonld"
         data={getCollectionPageJsonLd(
-          "Tailored Menswear & Nehru Jackets",
-          "Classic 4-pocket Nehru jackets, coti, and tailored Indian menswear crafted for festive and formal dressing.",
-          "/shop"
+          collectionTitle,
+          collectionDesc,
+          collectionCanonical
         )}
+      />
+      <JsonLd
+        id="shop-faqs-jsonld"
+        data={getFaqPageJsonLd(getCategoryFaqs(activeCat))}
       />
       <ShopSearchTracker query={activeQuery} totalResults={total} />
       <Suspense fallback={<div className="h-96 w-full animate-pulse bg-surface-container-low rounded-2xl" />}>

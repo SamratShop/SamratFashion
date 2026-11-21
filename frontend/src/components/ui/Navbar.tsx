@@ -357,14 +357,28 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
               className="bg-surface border-t border-outline-variant/30 py-5 px-margin-mobile md:px-margin-desktop"
             >
               <div className="max-w-2xl mx-auto space-y-3">
-                <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                <form
+                  id="navbar-search-form"
+                  name="navbarSearch"
+                  onSubmit={handleSearchSubmit}
+                  className="flex items-center gap-2"
+                  toolname="quickSearch"
+                  tooldescription="Quick search catalog for garments and styles"
+                  data-toolname="quickSearch"
+                  data-tooldescription="Quick search catalog for garments and styles"
+                >
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
                     <input
+                      id="navbar-search-input"
+                      name="q"
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search Nehru jackets, coti, festive menswear..."
+                      aria-label="Search garments and collections"
+                      toolparamdescription="Garment style, color or category to search"
+                      data-toolparamdescription="Garment style, color or category to search"
                       autoFocus
                       className="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-lg py-2.5 pl-10 pr-4 font-body-sm text-sm outline-none focus:border-primary text-on-surface placeholder:text-neutral-400"
                     />

@@ -3,22 +3,22 @@ import { api } from "@/lib/api";
 import { getActiveCategories, filterStorefrontCategories } from "@/lib/catalog";
 import { serverFetch } from "@/lib/serverApi";
 import OffersClient from "@/components/offers/OffersClient";
-import { getBreadcrumbJsonLd } from "@/lib/seo";
+import { getBreadcrumbJsonLd, getFaqPageJsonLd, getOffersFaqs } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Special Menswear Offers, Discounts & Coupons",
+  title: "Special Menswear Offers, Discounts & Coupons | Samrat Fashion",
   description:
-    "Explore exclusive discount codes, seasonal offers, and limited-time deals on tailored Indian menswear, Nehru jackets, and coti at Samrat Fashion. Secure Razorpay online checkout.",
+    "Discover exclusive discount coupons, seasonal offers, and free express shipping on tailored Indian menswear and Nehru jackets at Samrat Fashion.",
   alternates: {
     canonical: "/offers",
   },
   openGraph: {
     title: "Special Menswear Offers & Discounts | Samrat Fashion",
     description:
-      "Save on tailored Indian menswear and Nehru jackets. Discover active discount coupons and seasonal promotions at Samrat Fashion.",
+      "Discover exclusive discount coupons, seasonal offers, and free express shipping on tailored Indian menswear and Nehru jackets at Samrat Fashion.",
     url: "/offers",
     type: "website",
   },
@@ -79,6 +79,13 @@ export default async function OffersPage() {
           { name: "Home", url: "/" },
           { name: "Offers", url: "/offers" },
         ])}
+      />
+      <JsonLd
+        id="offers-faq-jsonld"
+        data={getFaqPageJsonLd(
+          getOffersFaqs(),
+          "Frequently asked questions regarding discount vouchers, free shipping rules, and payment options at Samrat Fashion."
+        )}
       />
       <OffersClient
         campaigns={campaigns}

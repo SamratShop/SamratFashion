@@ -11,6 +11,9 @@ import {
   getCollectionPageJsonLd,
   getFaqPageJsonLd,
   getProductFaqs,
+  getCategoryFaqs,
+  getOffersFaqs,
+  getAccountFaqs,
 } from "../lib/seo.ts";
 
 test("SITE_URL defaults to production Netlify domain and does not point to Vercel", () => {
@@ -47,6 +50,10 @@ test("getWebSiteJsonLd produces Sitelinks SearchBox Schema", () => {
   assert.strictEqual(webSite["@type"], "WebSite");
   assert.strictEqual(webSite.potentialAction["@type"], "SearchAction");
   assert.ok(webSite.potentialAction.target.urlTemplate.includes("/shop?search="));
+  const speakable = webSite.speakable as { "@type": string; cssSelector: string[] };
+  assert.strictEqual(speakable["@type"], "SpeakableSpecification");
+  assert.ok(speakable.cssSelector.includes("#homepage-main-heading"));
+  assert.ok(speakable.cssSelector.includes("#shop-main-heading"));
 });
 
 test("getBreadcrumbJsonLd produces valid BreadcrumbList", () => {
@@ -80,11 +87,21 @@ test("getProductJsonLd produces valid Product & Offer Schema", () => {
   assert.strictEqual(productSchema["@type"], "Product");
   assert.strictEqual(productSchema.name, "Cyber Neon Oversized Tee");
   assert.strictEqual(productSchema.sku, "CYBER-NEON-M");
+  const author = productSchema.author as Record<string, unknown>;
+  assert.strictEqual(author["@type"], "Organization");
+  assert.strictEqual(author.url, SITE_URL);
+  const speakable = productSchema.speakable as Record<string, unknown>;
+  assert.strictEqual(speakable["@type"], "SpeakableSpecification");
   const offers = productSchema.offers as Record<string, unknown>;
   assert.strictEqual(offers["@type"], "Offer");
   assert.strictEqual(offers.priceCurrency, "INR");
   assert.strictEqual(offers.price, 999);
   assert.strictEqual(offers.availability, "https://schema.org/InStock");
+  const seller = offers.seller as Record<string, unknown>;
+  assert.strictEqual(seller["@type"], "Organization");
+  assert.strictEqual(seller.url, SITE_URL);
+  assert.strictEqual(seller.name, SITE_CONFIG.name);
+  assert.ok(seller.logo);
   const aggRating = productSchema.aggregateRating as Record<string, unknown>;
   assert.strictEqual(aggRating["@type"], "AggregateRating");
   assert.strictEqual(aggRating.ratingValue, 4.8);
@@ -119,11 +136,45 @@ test("getProductJsonLd sets OutOfStock when isAvailable is false", () => {
   const offers = schema.offers as Record<string, unknown>;
   assert.strictEqual(offers.availability, "https://schema.org/OutOfStock");
 });
-test("getCollectionPageJsonLd produces valid CollectionPage Schema", () => {
-  const collection = getCollectionPageJsonLd("All Drops", "Browse streetwear drops", "/shop");
+test("getCollectionPageJsonLd produces valid CollectionPage Schema with Speakable specification", () => {
+  const collection = getCollectionPageJsonLd("Coti Menswear Collection", "Browse coti drops", "/shop?category=coti");
   assert.strictEqual(collection["@type"], "CollectionPage");
-  assert.strictEqual(collection.name, "All Drops");
-  assert.ok(collection.url.includes("/shop"));
+  assert.strictEqual(collection.name, "Coti Menswear Collection");
+  assert.ok(collection.url.includes("/shop?category=coti"));
+  assert.strictEqual(collection.inLanguage, "en-IN");
+  const speakable = collection.speakable as { "@type": string; cssSelector: string[] };
+  assert.strictEqual(speakable["@type"], "SpeakableSpecification");
+  assert.ok(Array.isArray(speakable.cssSelector));
+  assert.ok(speakable.cssSelector.includes("#shop-main-heading"));
+});
+
+test("getCategoryFaqs provides structured FAQs for coti and default collections", () => {
+  const cotiFaqs = getCategoryFaqs("coti");
+  assert.strictEqual(cotiFaqs.length, 5);
+  assert.strictEqual(cotiFaqs[0].q, "What is a coti in Indian menswear?");
+  assert.ok(cotiFaqs[0].a.includes("structured Indian ethnic outerwear garment"));
+
+  const defaultFaqs = getCategoryFaqs();
+  assert.strictEqual(defaultFaqs.length, 5);
+  assert.strictEqual(defaultFaqs[0].q, "What garments are included in the Samrat Fashion menswear collection?");
+});
+
+test("getOffersFaqs provides 5 structured FAQs for the offers and discounts page", () => {
+  const offersFaqs = getOffersFaqs();
+  assert.strictEqual(offersFaqs.length, 5);
+  assert.strictEqual(offersFaqs[0].q, "How do I apply a discount code at Samrat Fashion?");
+  assert.ok(offersFaqs[0].a.includes("Click any active voucher code"));
+  assert.strictEqual(offersFaqs[1].q, "What is the minimum order value for complimentary delivery?");
+  assert.ok(offersFaqs[1].a.includes("orders of ₹399 and above"));
+});
+
+test("getAccountFaqs provides 5 structured FAQs for the customer account hub", () => {
+  const accountFaqs = getAccountFaqs();
+  assert.strictEqual(accountFaqs.length, 5);
+  assert.strictEqual(accountFaqs[0].q, "How do I track my Nehru jacket or menswear shipment?");
+  assert.ok(accountFaqs[0].a.includes("Track Order"));
+  assert.strictEqual(accountFaqs[1].q, "How do I exchange an item for a different size?");
+  assert.ok(accountFaqs[1].a.includes("Request Size Exchange"));
 });
 
 
@@ -134,8 +185,13 @@ test("getFaqPageJsonLd produces valid FAQPage Schema", () => {
   ];
   const faqSchema = getFaqPageJsonLd(faqs);
   assert.strictEqual(faqSchema["@type"], "FAQPage");
+  assert.ok(faqSchema.description);
+  const speakable = faqSchema.speakable as { "@type": string; cssSelector: string[] };
+  assert.strictEqual(speakable["@type"], "SpeakableSpecification");
+  assert.ok(speakable.cssSelector.includes(".faq-answer-snippet"));
   assert.strictEqual(faqSchema.mainEntity.length, 2);
   assert.strictEqual(faqSchema.mainEntity[0]["@type"], "Question");
+  assert.strictEqual(faqSchema.mainEntity[0].text, "How long does shipping take?");
   assert.strictEqual(faqSchema.mainEntity[0].acceptedAnswer["@type"], "Answer");
 });
 

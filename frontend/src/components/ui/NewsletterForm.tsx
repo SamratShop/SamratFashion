@@ -57,9 +57,21 @@ export function NewsletterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-1.5 mt-1">
+    <form
+      id="newsletter-subscription-form"
+      name="newsletterSubscription"
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-1.5 mt-1"
+      toolname="subscribeNewsletter"
+      tooldescription="Subscribe customer email to Samrat Fashion drop alerts and seasonal offers"
+      data-toolname="subscribeNewsletter"
+      data-tooldescription="Subscribe customer email to Samrat Fashion drop alerts and seasonal offers"
+    >
       <div className="flex max-w-sm">
         <input
+          id="newsletter-email-input"
+          name="email"
           type="email"
           value={email}
           onChange={(e) => {
@@ -70,6 +82,8 @@ export function NewsletterForm() {
           aria-label="Email address for exclusive drops"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "newsletter-error" : undefined}
+          toolparamdescription="Customer email address to receive menswear drop announcements"
+          data-toolparamdescription="Customer email address to receive menswear drop announcements"
           className="bg-neutral-900 border border-neutral-800 text-white font-body-sm text-xs px-3.5 h-11 rounded-l-md focus:outline-none focus:border-primary w-full placeholder:text-neutral-500 focus-ring"
         />
         <button

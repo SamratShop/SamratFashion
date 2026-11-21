@@ -190,6 +190,11 @@ const nextConfig: NextConfig = {
         destination: "/account/wishlist",
         permanent: false,
       },
+      {
+        source: "/contact",
+        destination: "/support",
+        permanent: true,
+      },
     ];
   },
 };

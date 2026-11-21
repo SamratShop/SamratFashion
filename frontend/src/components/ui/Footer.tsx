@@ -108,10 +108,12 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
         </div>
         <div className="col-span-1 md:col-span-2 flex flex-col gap-2.5">
           <h3 className="font-mono text-xs uppercase text-neutral-100 font-bold tracking-wider mb-1">CUSTOMER CARE</h3>
+          <Link href="/support" className="text-neutral-400 hover:text-white transition-colors text-xs">Contact Us</Link>
+          <Link href="/support#about" className="text-neutral-400 hover:text-white transition-colors text-xs">About Us</Link>
           <Link href="/offers" className="text-neutral-400 hover:text-white transition-colors text-xs">Special Offers &amp; Deals</Link>
           <Link href="/account/orders" className="text-neutral-400 hover:text-white transition-colors text-xs">My Orders</Link>
           <Link href="/account/wishlist" className="text-neutral-400 hover:text-white transition-colors text-xs">Saved Wishlist</Link>
-          <Link href="/support" className="text-neutral-400 hover:text-white transition-colors text-xs">Customer Support</Link>
+          <Link href="/support" className="text-neutral-400 hover:text-white transition-colors text-xs">Help &amp; FAQs</Link>
         </div>
         <div className="col-span-1 md:col-span-4 flex flex-col gap-3">
           <h3 className="font-mono text-xs uppercase text-neutral-100 font-bold tracking-wider mb-1">STAY UPDATED</h3>
@@ -132,6 +134,8 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             &copy; {new Date().getFullYear()} SAMRAT FASHION. ALL RIGHTS RESERVED.
           </p>
           <div className="flex flex-wrap gap-4 sm:gap-6 font-mono text-[11px]">
+            <Link href="/support#about" className="hover:text-white transition-colors">About Us</Link>
+            <Link href="/support" className="hover:text-white transition-colors">Contact Us</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/shipping-returns" className="hover:text-white transition-colors">Shipping &amp; Returns</Link>

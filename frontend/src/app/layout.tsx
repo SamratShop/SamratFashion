@@ -127,11 +127,18 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
       </head>
       <body
         suppressHydrationWarning
         className={`${inter.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} antialiased min-h-full flex flex-col w-full overflow-x-hidden`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-neutral-900 focus:text-white focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs font-bold uppercase tracking-wider"
+        >
+          Skip to main content
+        </a>
         <JsonLd id="org-jsonld" data={getOrganizationJsonLd()} />
         <JsonLd id="website-jsonld" data={getWebSiteJsonLd()} />
         <GoogleAnalytics />

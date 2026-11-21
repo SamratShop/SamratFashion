@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, useTransition } from
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Heart, Truck, Ruler, ShoppingBag, Loader2, ZoomIn, X, ChevronLeft, ChevronRight, ShieldCheck, RotateCcw, Check, ArrowRight, Share2 } from "lucide-react";
+import { Star, Heart, Truck, Ruler, ShoppingBag, Loader2, ZoomIn, X, ChevronLeft, ChevronRight, ShieldCheck, RotateCcw, Check, ArrowRight, Share2, ChevronDown, HelpCircle, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { ProductCard, ProductCardProps } from "@/components/catalog/ProductCard";
@@ -213,6 +213,7 @@ export function PDPClient({
   }, [product.variants, selectedColor, initialColor, sizes, initialSelectedSize]);
 
   const [selectedSize, setSelectedSize] = useState<string>(initialSize);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   // Sync state if product props update or if selectedColor is uninitialized
   useEffect(() => {
@@ -647,10 +648,11 @@ export function PDPClient({
         )}
       </AnimatePresence>
 
-    <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 max-w-container-max mx-auto w-full pb-28 lg:pb-0">
+    <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 max-w-container-max mx-auto w-full pb-20 lg:pb-12 items-start">
 
-      {/* ─── Image Gallery ─── */}
-      <div className="w-full lg:w-[52%] flex flex-col-reverse md:flex-row gap-3 md:gap-4">
+      {/* ─── Image Gallery & Craftsmanship Column ─── */}
+      <div className="w-full lg:w-[52%] flex flex-col gap-4 lg:sticky lg:top-24 self-start">
+        <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4">
 
         {/* ── Thumbnails ── */}
         {/* Desktop: vertical column on left │ Mobile: horizontal row below main image */}
@@ -686,6 +688,7 @@ export function PDPClient({
                 src={img}
                 alt={`${product.name} thumbnail ${idx + 1}`}
                 fill
+                sizes="78px"
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
               {selectedImage === idx && (
@@ -918,6 +921,59 @@ export function PDPClient({
         </div>
       </div>
 
+      {/* ─── Tailoring Architecture & Garment Specs Card (Fills Left Void) ─── */}
+      <div className="hidden sm:block rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 space-y-4 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+          <h3 className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-neutral-900 inline-block" />
+            <span>Tailoring Architecture &amp; Specifications</span>
+          </h3>
+          <span className="font-mono text-[10px] text-neutral-400 uppercase font-semibold">SAMRAT MENSWEAR</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FABRIC WEAVE</span>
+            <span className="font-bold text-on-surface">{product.fabric || "Textured Woven Cotton Blend"}</span>
+          </div>
+          {product.gsm && product.gsm > 0 ? (
+            <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">WEIGHT</span>
+              <span className="font-bold text-on-surface">{`${product.gsm} GSM`}</span>
+            </div>
+          ) : (
+            <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">ORIGIN</span>
+              <span className="font-bold text-on-surface">Crafted in India</span>
+            </div>
+          )}
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FIT PROFILE</span>
+            <span className="font-bold text-on-surface">{product.fit ? product.fit.replace(/_/g, " ") : "Tailored Regular Fit"}</span>
+          </div>
+          <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
+            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">INNER LINING</span>
+            <span className="font-bold text-on-surface">Full Inner Satin Lining</span>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono text-neutral-500">
+          <div className="flex items-center gap-2">
+            <span className="text-neutral-400 uppercase font-bold text-[10px]">MODEL:</span>
+            <span>6&apos;1&quot; (185 cm) wearing size L</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-neutral-400 uppercase font-bold text-[10px]">CARE:</span>
+            <span className="truncate">
+              {product.careInstructions && product.careInstructions.length > 0
+                ? product.careInstructions.join(" · ")
+                : "Dry clean or gentle cold wash"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
       {/* Product Details Column */}
       <div className="w-full lg:w-[48%] flex flex-col pt-1 lg:pt-4 pr-0 lg:pr-4 space-y-6">
         {/* Breadcrumb Bar */}
@@ -947,11 +1003,16 @@ export function PDPClient({
           {(product.averageRating > 0 || product.fit || (product.gsm && product.gsm > 0)) && (
             <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
               {product.averageRating > 0 && (
-                <div className="flex items-center gap-1.5 text-neutral-800 bg-surface-container px-2.5 py-1 rounded-sm">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })}
+                  className="flex items-center gap-1.5 text-neutral-800 bg-surface-container hover:bg-neutral-200 transition-colors px-2.5 py-1 rounded-sm cursor-pointer"
+                  aria-label="View customer reviews"
+                >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span className="font-bold">{product.averageRating.toFixed(1)}</span>
                   <span className="text-neutral-400">({product.reviewCount || 0} reviews)</span>
-                </div>
+                </button>
               )}
               {(product.fit || (product.gsm && product.gsm > 0)) && (
                 <span className="text-neutral-500 font-mono uppercase tracking-wider text-[11px]">
@@ -1188,50 +1249,6 @@ export function PDPClient({
           </motion.button>
         </div>
 
-        {/* Garment Specifications Architecture Matrix */}
-        <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low/40 p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-            <h3 className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-neutral-900 inline-block"></span>
-              <span>Garment Specifications</span>
-            </h3>
-            <span className="font-mono text-[10px] text-neutral-500 uppercase font-semibold">SAMRAT FASHION</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FABRIC</span>
-              <span className="font-bold text-on-surface">{product.fabric || "Breathable Woven Cotton Blend"}</span>
-            </div>
-            {product.gsm && product.gsm > 0 ? (
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-                <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">WEIGHT</span>
-                <span className="font-bold text-on-surface">{`${product.gsm} GSM`}</span>
-              </div>
-            ) : (
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-                <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">ORIGIN</span>
-                <span className="font-bold text-on-surface">Crafted in India</span>
-              </div>
-            )}
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FIT</span>
-              <span className="font-bold text-on-surface">{product.fit ? product.fit.replace(/_/g, " ") : "Tailored Regular Fit"}</span>
-            </div>
-            <div className="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">LINING</span>
-              <span className="font-bold text-on-surface">Full Inner Satin Lining</span>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-outline-variant/20 text-[11px] font-mono text-neutral-500 flex items-center gap-2">
-            <span className="text-neutral-400 uppercase font-bold text-[10px]">CARE:</span>
-            <span>
-              {product.careInstructions && product.careInstructions.length > 0
-                ? product.careInstructions.join(" · ")
-                : "Dry clean recommended or gentle cold hand wash · Warm iron on reverse"}
-            </span>
-          </div>
-        </div>
-
         {/* Delivery & Customer Assurance */}
         <div className="border border-outline-variant/30 p-4 rounded-xl space-y-3 bg-surface-container-lowest text-xs">
           <div className="flex items-start gap-3">
@@ -1281,41 +1298,165 @@ export function PDPClient({
             className="text-on-surface-variant leading-relaxed text-xs sm:text-sm prose max-w-none font-body-sm"
             dangerouslySetInnerHTML={{ __html: safeDescriptionHtml }}
           />
+
+          {/* Quick Specification Badges */}
+          <div className="grid grid-cols-2 gap-2.5 pt-2">
+            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Collar Style</p>
+                <p className="text-xs font-bold text-on-surface truncate">Crisp Mandarin Collar</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Pocket Design</p>
+                <p className="text-xs font-bold text-on-surface truncate">4 Functional Flap Pockets</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Front Closure</p>
+                <p className="text-xs font-bold text-on-surface truncate">5-Button Tailored Placket</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Occasion</p>
+                <p className="text-xs font-bold text-on-surface truncate">Festive &amp; Formal Layering</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Customer Reviews & Photo Showcase Section */}
-        <ProductReviewsSection productId={product._id} />
       </div>
     </div>
 
+    {/* ─── Customer Reviews & Photo Showcase Section ─── */}
+    <ProductReviewsSection productId={product._id} />
+
     {/* ─── Frequently Asked Questions Section ─── */}
     <section className="w-full mt-12 sm:mt-16 pt-10 sm:pt-14 border-t border-outline-variant/40 max-w-container-max mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="w-2 h-2 rounded-full bg-neutral-950"></span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-bold">
-            PRODUCT HELP &amp; ADVICE
-          </span>
-        </div>
-        <h2 className="font-headline-lg text-2xl sm:text-3xl font-black text-on-surface uppercase tracking-tight">
-          Frequently Asked Questions
-        </h2>
-      </div>
-
-      <div className="space-y-4 max-w-3xl">
-        {productFaqs.map((faq, idx) => (
-          <div
-            key={idx}
-            className="p-5 sm:p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 space-y-2"
-          >
-            <h3 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface">
-              {faq.q}
-            </h3>
-            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-              {faq.a}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        {/* Left Column: Heading, Eyebrow & Sizing Support Card */}
+        <div className="lg:col-span-4 space-y-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-neutral-950" />
+              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-bold">
+                PRODUCT HELP &amp; ADVICE
+              </span>
+            </div>
+            <h2 className="font-headline-lg text-2xl sm:text-3xl font-black text-on-surface uppercase tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant mt-2 leading-relaxed">
+              Clear details regarding Nehru jacket chest measurements, collar posture, fabric care, and our 7-day easy return policy.
             </p>
           </div>
-        ))}
+
+          {/* Sizing Support Card */}
+          <div className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-neutral-900">
+              <HelpCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-mono font-bold mb-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Specialists Online</span>
+              </div>
+              <h3 className="font-bold text-sm text-on-surface uppercase tracking-wide">
+                Need Personal Sizing Advice?
+              </h3>
+              <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                Unsure about chest fit or festive kurta layering? Consult our sizing specialists or raise a support ticket.
+              </p>
+            </div>
+            <div className="pt-1">
+              <Link
+                href="/support"
+                className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-neutral-900 hover:text-primary hover:underline transition-colors"
+              >
+                <span>Contact Sizing Desk</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Interactive Accordion */}
+        <div className="lg:col-span-8 space-y-3.5">
+          {productFaqs.map((faq, idx) => {
+            const isOpen = openFaqIndex === idx;
+            const faqTopics = [
+              { topic: "SIZING & FIT GUIDE", icon: Ruler },
+              { topic: "7-DAY RETURNS & EXCHANGES", icon: RotateCcw },
+              { topic: "EXPRESS DISPATCH & SHIPPING", icon: Truck },
+              { topic: "SECURE PAYMENTS & UPI", icon: ShieldCheck },
+              { topic: "FABRIC CARE & PRESERVATION", icon: Sparkles },
+            ];
+            const topic = faqTopics[idx] || { topic: "GARMENT ADVICE", icon: HelpCircle };
+            const TopicIcon = topic.icon;
+
+            return (
+              <div
+                key={idx}
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden bg-surface-container-lowest ${
+                  isOpen
+                    ? "border-neutral-900/40 shadow-xs ring-1 ring-neutral-900/5 border-l-4 border-l-neutral-950"
+                    : "border-outline-variant/30 hover:border-outline-variant/70"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${idx}`}
+                  className="w-full p-5 sm:p-6 flex items-center justify-between text-left gap-4 cursor-pointer group"
+                >
+                  <div className="flex flex-col gap-1.5 items-start text-left min-w-0 pr-2">
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold tracking-wider text-neutral-600 bg-surface-container px-2 py-0.5 rounded-sm">
+                      <TopicIcon className="w-3 h-3 text-neutral-800" />
+                      <span>{topic.topic}</span>
+                    </span>
+                    <h3 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface group-hover:text-neutral-950 transition-colors">
+                      {faq.q}
+                    </h3>
+                  </div>
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                      isOpen
+                        ? "rotate-180 bg-neutral-950 text-white"
+                        : "bg-surface-container text-neutral-500 group-hover:bg-neutral-950 group-hover:text-white"
+                    }`}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </span>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      id={`faq-answer-${idx}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 sm:px-6 pb-6 pt-1 text-on-surface-variant text-xs sm:text-sm leading-relaxed border-t border-outline-variant/15 font-body-md">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
 
