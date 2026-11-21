@@ -1377,7 +1377,7 @@ export function PDPClient({
             </div>
             <div className="pt-1">
               <Link
-                href="/contact"
+                href="/support"
                 className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-neutral-900 hover:text-primary hover:underline transition-colors"
               >
                 <span>Contact Sizing Desk</span>
