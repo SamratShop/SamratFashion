@@ -86,10 +86,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const color = typeof resolvedSearchParams.color === "string" ? resolvedSearchParams.color : "";
   const product = await getProductBySlug(slug);
 
   if (!product) {
@@ -114,17 +118,20 @@ export async function generateMetadata({
     `Buy ${product.name} at Samrat Fashion India. Tailored Indian menswear crafted for festive and formal occasions with express Pan-India shipping and secure Razorpay checkout.`;
 
   const primaryImage = product.images?.[0] || `${SITE_URL}/og-image.jpg`;
+  const canonicalPath = color
+    ? `/shop/${product.slug}?color=${encodeURIComponent(color)}`
+    : `/shop/${product.slug}`;
 
   return {
     title: cleanTitle,
     description,
     alternates: {
-      canonical: `/shop/${product.slug}`,
+      canonical: canonicalPath,
     },
     openGraph: {
       title: fullTitle,
       description,
-      url: `/shop/${product.slug}`,
+      url: canonicalPath,
       type: "article",
       images: [
         {
@@ -177,7 +184,7 @@ export default async function ProductPage({
   const initialSelectedSize = typeof sizeParam === "string" ? sizeParam : undefined;
 
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-20 lg:pb-12">
+    <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-20 lg:pb-12 outline-none">
       <PDPClient
         product={product}
         initialSelectedColor={initialSelectedColor}

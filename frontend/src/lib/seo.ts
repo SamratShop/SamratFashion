@@ -8,7 +8,7 @@ export const SITE_CONFIG = {
   legalName: "Samrat Fashion",
   url: SITE_URL,
   description:
-    "Contemporary Indian menswear crafted for festive, formal, and everyday dressing — structured Nehru jackets, coti, and wardrobe essentials with express Pan-India delivery.",
+    "Shop tailored Indian menswear, classic 4-pocket Nehru jackets, and coti for festive & formal dressing. Express Pan-India delivery & secure Razorpay checkout.",
   defaultTitle: "Samrat Fashion | Premium Indian Menswear & Apparel",
   titleTemplate: "%s | Samrat Fashion",
   telephone: "+91-62621-27724",
@@ -154,6 +154,22 @@ export function getWebSiteJsonLd() {
       },
       "query-input": "required name=search_term_string",
     },
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: [
+        "#homepage-main-heading",
+        "#homepage-lead-summary",
+        "#shop-main-heading",
+        "#coti-definition-text",
+        "#pdp-main-heading",
+        "#pdp-lead-summary",
+        "#offers-main-heading",
+        "#offers-lead-summary",
+        "#account-main-heading",
+        "#account-lead-summary",
+        ".faq-answer-snippet",
+      ],
+    },
   };
 }
 
@@ -210,6 +226,18 @@ export function getProductJsonLd(product: ProductJsonLdParams) {
       "@type": "Brand",
       name: SITE_CONFIG.fullBrand,
     },
+    author: {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_CONFIG.name,
+      url: SITE_URL,
+    },
+    datePublished: "2026-01-15T00:00:00+05:30",
+    dateModified: "2026-11-21T00:00:00+05:30",
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["#pdp-product-title", "#pdp-lead-summary", ".faq-answer-snippet"],
+    },
     offers: {
       "@type": "Offer",
       "@id": `${productUrl}#offer`,
@@ -224,7 +252,33 @@ export function getProductJsonLd(product: ProductJsonLdParams) {
           : "https://schema.org/OutOfStock",
       seller: {
         "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
         name: SITE_CONFIG.name,
+        url: SITE_URL,
+        logo: `${SITE_URL}/logo.png`,
+        description: SITE_CONFIG.description,
+        telephone: SITE_CONFIG.telephone,
+        email: SITE_CONFIG.email,
+        sameAs: [
+          SITE_CONFIG.social.instagram,
+          SITE_CONFIG.social.facebook,
+          SITE_CONFIG.social.twitter,
+        ],
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: SITE_CONFIG.telephone,
+          contactType: "customer service",
+          areaServed: SITE_CONFIG.geo.country,
+          availableLanguage: ["en", "hi"],
+        },
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "Samrat Fashion Distribution Hub",
+          addressLocality: "Mumbai",
+          addressRegion: "Maharashtra",
+          postalCode: SITE_CONFIG.geo.postalCode,
+          addressCountry: SITE_CONFIG.geo.country,
+        },
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
@@ -279,27 +333,164 @@ export function getCollectionPageJsonLd(name: string, description: string, url: 
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
+    "@id": `${fullUrl}#collection`,
     name,
     description,
     url: fullUrl,
+    inLanguage: "en-IN",
     isPartOf: {
       "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
       name: SITE_CONFIG.name,
       url: SITE_URL,
+    },
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: [
+        "#homepage-main-heading",
+        "#homepage-lead-summary",
+        "#shop-main-heading",
+        "#coti-definition-text",
+        "#pdp-main-heading",
+        "#pdp-lead-summary",
+        "#offers-main-heading",
+        "#offers-lead-summary",
+        "#account-main-heading",
+        "#account-lead-summary",
+        ".faq-answer-snippet",
+      ],
     },
   };
 }
 
 /**
+ * Returns curated FAQs for category/shop collection pages to power
+ * FAQPage JSON-LD and on-page People Also Ask (PAA) answer snippets.
+ */
+export function getCategoryFaqs(categorySlug?: string): Array<{ q: string; a: string }> {
+  const normalized = (categorySlug || "").toLowerCase();
+  if (normalized === "coti" || normalized === "jackets") {
+    return [
+      {
+        q: "What is a coti in Indian menswear?",
+        a: "A coti (also known as a sleeveless Nehru jacket or Modi vest) is a structured Indian ethnic outerwear garment featuring a mandarin stand-up collar, button placket, and functional pocketing, designed to be layered over kurtas or shirts for weddings, festivals, and formal occasions.",
+      },
+      {
+        q: "How do I choose the right size for a coti or Nehru jacket?",
+        a: "Measure around the fullest part of your chest over a shirt or lightweight kurta. For a tailored slim fit, match your exact chest measurement (e.g., size 40 for a 40-inch chest). For comfortable layering over heavier festive garments, consider sizing up by one size.",
+      },
+      {
+        q: "How should a coti be styled for Indian weddings and festivals?",
+        a: "Pair your coti over a solid silk or linen kurta in ivory, off-white, or pastel tones. Fasten all front buttons leaving the bottom-most button unfastened for a natural drape, and accentuate the chest welt pocket with a folded contrast silk pocket square.",
+      },
+      {
+        q: "What is the difference between a coti and a formal waistcoat?",
+        a: "A coti features a stand-up mandarin collar (bandhgala) specifically structured for Indian ethnic attire, whereas a western waistcoat features a low V-neck or horseshoe cut engineered to sit beneath a suit jacket with a necktie.",
+      },
+      {
+        q: "How long does shipping take and what is the return policy?",
+        a: "All orders are dispatched within 24–48 hours with free express shipping across India on orders above ₹399. Samrat Fashion provides a 7-day hassle-free return and size exchange policy for unworn items in original condition.",
+      },
+    ];
+  }
+
+  return [
+    {
+      q: "What garments are included in the Samrat Fashion menswear collection?",
+      a: "Our collection features tailored 4-pocket Nehru jackets, coti, Modi vests, and festive Indian menswear handcrafted with breathable woven textures and structured bandhgala collars.",
+    },
+    {
+      q: "How do I select the right garment size?",
+      a: "Refer to the comprehensive Size Guide provided on each product and category page. We recommend selecting your exact chest size for a modern silhouette or sizing up if layering over thick kurtas.",
+    },
+    {
+      q: "How fast is delivery across India?",
+      a: "Orders are prepared and dispatched within 24 to 48 hours. Metro deliveries arrive within 3 to 5 business days, while non-metro locations take 4 to 7 business days via reliable express logistics.",
+    },
+    {
+      q: "What payment methods are supported?",
+      a: "We support 100% encrypted checkout via Razorpay, including UPI (Google Pay, PhonePe, Paytm, BHIM), major Credit and Debit cards (Visa, MasterCard, RuPay), and NetBanking.",
+    },
+    {
+      q: "Can I exchange my jacket if it does not fit?",
+      a: "Yes, we offer an easy 7-day size exchange and return policy. Simply initiate an exchange from My Orders or submit a support ticket to arrange a doorstep pickup.",
+    },
+  ];
+}
+
+/**
+ * Returns structured FAQs for the Offers, Discounts & Deals page.
+ */
+export function getOffersFaqs(): Array<{ q: string; a: string }> {
+  return [
+    {
+      q: "How do I apply a discount code at Samrat Fashion?",
+      a: "Click any active voucher code on this Offers page to copy it to your clipboard. Add your chosen Nehru jackets or menswear to your cart, proceed to checkout, and paste the code into the coupon field for instant deduction before completing payment.",
+    },
+    {
+      q: "What is the minimum order value for complimentary delivery?",
+      a: "Samrat Fashion provides automatic complimentary express delivery across India on all orders of ₹399 and above. Orders below ₹399 carry a flat ₹45 shipping fee. No coupon code is required as the free shipping rule applies automatically at checkout.",
+    },
+    {
+      q: "Can I combine multiple discount coupons on a single order?",
+      a: "Only one promotional coupon voucher can be redeemed per checkout order. However, coupon vouchers automatically stack with our free express delivery benefit on qualifying orders above ₹399.",
+    },
+    {
+      q: "Can I return or exchange items purchased during a promotion or sale?",
+      a: "Yes, our full 7-day doorstep return and size exchange policy applies to all promotional and discounted garments. If your item does not fit, simply submit an exchange or return request from your My Orders dashboard.",
+    },
+    {
+      q: "What payment methods qualify for promotional discounts?",
+      a: "All 100% encrypted prepaid payment methods powered by Razorpay qualify for promotional discounts, including UPI (Google Pay, PhonePe, Paytm, BHIM), all major Credit and Debit cards (Visa, MasterCard, RuPay), and NetBanking.",
+    },
+  ];
+}
+
+/**
+ * Returns structured FAQs for the Customer Account Hub page.
+ */
+export function getAccountFaqs(): Array<{ q: string; a: string }> {
+  return [
+    {
+      q: "How do I track my Nehru jacket or menswear shipment?",
+      a: "Navigate to My Orders in your Account Hub and select Track Order. You can view the live courier tracking number, shipment dispatch timestamp, transit milestones, and estimated delivery date across India.",
+    },
+    {
+      q: "How do I exchange an item for a different size?",
+      a: "Open My Orders, select the order containing the garment, and click Request Size Exchange. Choose your preferred replacement size; our team will arrange a doorstep courier pickup and dispatch your replacement size with zero extra shipping fee.",
+    },
+    {
+      q: "Can I update my delivery address after placing an order?",
+      a: "If your order has not yet been handed over to the courier partner (within 12–24 hours of placement), contact our Customer Support desk immediately to update the shipping pin code and delivery address.",
+    },
+    {
+      q: "How do I download my invoice for accounting or tax purposes?",
+      a: "Go to My Orders, select your completed purchase, and click Download Invoice to retrieve an official GST-compliant tax invoice detailing garment specifications, base price, and HSN codes.",
+    },
+    {
+      q: "How is my personal account data protected?",
+      a: "Samrat Fashion utilizes SSL/TLS encryption, secure session authentication, and PCI-DSS compliant Razorpay payment infrastructure. We never store debit/credit card numbers or UPI PINs on our servers.",
+    },
+  ];
+}
+
+/**
  * Returns Schema.org JSON-LD for FAQPage.
  */
-export function getFaqPageJsonLd(faqs: Array<{ q: string; a: string }>) {
+export function getFaqPageJsonLd(faqs: Array<{ q: string; a: string }>, description?: string) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    description: description || "Frequently asked questions regarding sizing, tailoring, delivery, care, and returns for Samrat Fashion garments.",
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: [".faq-answer-snippet"],
+    },
     mainEntity: faqs.map((faq) => ({
       "@type": "Question",
       name: faq.q,
+      text: faq.q,
+      answerCount: 1,
       acceptedAnswer: {
         "@type": "Answer",
         text: faq.a,
@@ -311,6 +502,7 @@ export function getFaqPageJsonLd(faqs: Array<{ q: string; a: string }>) {
 /**
  * Returns the standard 5 FAQs for product detail pages (PDP),
  * dynamically incorporating actual variant sizes for the product.
+ * Each answer is tailored to a featured-snippet friendly 40-60 word length.
  */
 export function getProductFaqs(product?: {
   variants?: Array<{ size?: string }>;
@@ -327,7 +519,7 @@ export function getProductFaqs(product?: {
   return [
     {
       q: "How do I choose the right Nehru jacket size?",
-      a: `Measure around the fullest part of your chest over a shirt or kurta and match it with the Size Guide on the product page${sizeText}. If you prefer a relaxed fit for layering, consider sizing up.`,
+      a: `To choose your ideal Nehru jacket size, measure around the fullest part of your chest over a shirt or lightweight kurta and consult our Size Guide${sizeText}. For a modern tailored silhouette, select your exact chest measurement; if you prefer comfortable layering over heavier festive garments, consider choosing one size up.`,
     },
     {
       q: "What is the return policy?",
@@ -339,11 +531,11 @@ export function getProductFaqs(product?: {
     },
     {
       q: "What payment methods do you accept?",
-      a: "100% encrypted prepaid checkout via Razorpay: UPI (Google Pay, PhonePe, Paytm, BHIM), all major Credit & Debit cards (Visa, MasterCard, RuPay), NetBanking, and Wallets. Cash on Delivery is currently unavailable.",
+      a: "We offer 100% encrypted prepaid checkout powered by Razorpay. We accept all major UPI applications (Google Pay, PhonePe, Paytm, BHIM), all credit and debit cards (Visa, MasterCard, RuPay), NetBanking, and mobile wallets. Cash on Delivery is currently unavailable to guarantee swift contactless express dispatch across India.",
     },
     {
       q: "How do I care for my Nehru jacket?",
-      a: "Dry clean recommended to preserve the collar structure and woven texture, or gently hand wash cold with mild detergent. Dry in shade and warm iron on the reverse side.",
+      a: "Dry clean recommended to preserve the collar canvas fusing, shoulder posture, and textured weave of your Nehru jacket. Alternatively, gentle hand wash in cold water using mild liquid detergent is suitable. Always dry in shade and warm iron on the reverse side.",
     },
   ];
 }

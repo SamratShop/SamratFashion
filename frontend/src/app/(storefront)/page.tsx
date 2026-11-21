@@ -14,6 +14,8 @@ import { GarmentAnatomySection } from "@/components/storefront/GarmentAnatomySec
 import { InteractiveCampaignCards } from "@/components/storefront/InteractiveCampaignCards";
 import { TrustPillarsBar } from "@/components/storefront/TrustPillarsBar";
 import { ProductCardProps } from "@/components/catalog/ProductCard";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { getBreadcrumbJsonLd, getFaqPageJsonLd, getCategoryFaqs } from "@/lib/seo";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
@@ -21,14 +23,14 @@ export const metadata: Metadata = {
     absolute: "Samrat Fashion | Tailored Indian Menswear & Nehru Jackets",
   },
   description:
-    "Shop tailored Indian menswear, classic 4-pocket Nehru jackets, and coti crafted for festive and formal dressing at Samrat Fashion. Fast Pan-India shipping with secure Razorpay checkout.",
+    "Shop tailored Indian menswear, classic 4-pocket Nehru jackets, and coti for festive & formal dressing. Express Pan-India delivery & secure Razorpay checkout.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "Samrat Fashion | Tailored Indian Menswear & Nehru Jackets",
     description:
-      "Structured Nehru jackets, coti, and festive menswear crafted in breathable woven fabrics with express shipping across India.",
+      "Shop tailored Indian menswear, classic 4-pocket Nehru jackets, and coti for festive & formal dressing. Express Pan-India delivery & secure Razorpay checkout.",
     url: "/",
   },
 };
@@ -184,7 +186,10 @@ export default async function Homepage() {
   };
 
   return (
-    <main className="w-full flex flex-col items-center pb-24 lg:pb-0">
+    <main id="main-content" tabIndex={-1} className="w-full flex flex-col items-center pb-24 lg:pb-0 outline-none">
+      <JsonLd id="homepage-breadcrumb-jsonld" data={getBreadcrumbJsonLd([{ name: "Home", url: "/" }])} />
+      <JsonLd id="homepage-faq-jsonld" data={getFaqPageJsonLd(getCategoryFaqs())} />
+
       {/* Hero Section - Dynamic Auto-Sliding Editorial Streetwear Carousel */}
       {(() => {
         let displayHeroBanners: HeroBannerItem[] = Array.isArray(heroBanners) ? [...heroBanners] : [];
@@ -220,8 +225,8 @@ export default async function Homepage() {
             {
               _id: "default-menswear-hero",
               image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=2000&auto=format&fit=crop",
-              title: "SAMRAT FASHION · EDITION 2026",
-              subtitle: "Tailored Indian menswear crafted for festive, formal, and everyday dressing — structured Nehru jackets and seasonal collections.",
+              title: "Tailored Indian Menswear & Nehru Jackets | Samrat Fashion 2026",
+              subtitle: "Structured Nehru jackets, coti, and festive menswear crafted in breathable woven fabrics with express shipping across India.",
               ctaLabel: firstCategory ? `EXPLORE ${firstCategory.name.toUpperCase()}` : "EXPLORE COLLECTION",
               ctaUrl: firstCategory ? `/shop?category=${encodeURIComponent(firstCategory.slug)}` : "/shop",
               campaignTag: "EDITION 2026",
@@ -244,7 +249,7 @@ export default async function Homepage() {
       </section>
 
       {/* Men's Streetwear Collections Grid */}
-      <section className="py-12 md:py-20 bg-surface w-full border-b border-outline-variant/30 flex justify-center">
+      <section id="collections-capsules" className="py-12 md:py-20 bg-surface w-full border-b border-outline-variant/30 flex justify-center">
         <div className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-10 gap-2 sm:gap-3">
             <div>
