@@ -389,7 +389,7 @@ export function getCategoryFaqs(categorySlug?: string): Array<{ q: string; a: st
       },
       {
         q: "How long does shipping take and what is the return policy?",
-        a: "All orders are dispatched within 24–48 hours with free express shipping across India on orders above ₹399. Samrat Fashion provides a 7-day hassle-free return and size exchange policy for unworn items in original condition.",
+        a: "All orders are dispatched within 24–48 hours with free express shipping across India on orders above ₹399. Samrat Fashion provides 7-day easy returns for unworn, unwashed garments with original tags intact. Submit a return from My Orders; after pickup and quality check the refund is credited within 5–7 business days and you can re-order the right size. For a direct size swap without re-ordering, raise a 'Size Exchange & Returns' support ticket and our team will arrange a manual exchange.",
       },
     ];
   }
@@ -413,7 +413,7 @@ export function getCategoryFaqs(categorySlug?: string): Array<{ q: string; a: st
     },
     {
       q: "Can I exchange my jacket if it does not fit?",
-      a: "Yes, we offer an easy 7-day size exchange and return policy. Simply initiate an exchange from My Orders or submit a support ticket to arrange a doorstep pickup.",
+      a: "7-day easy returns for unworn, unwashed garments with original tags intact. Submit a return from My Orders; after pickup and quality check the refund is credited within 5–7 business days and you can re-order the right size. For a direct size swap without re-ordering, raise a 'Size Exchange & Returns' support ticket and our team will arrange a manual exchange.",
     },
   ];
 }
@@ -425,7 +425,7 @@ export function getOffersFaqs(): Array<{ q: string; a: string }> {
   return [
     {
       q: "How do I apply a discount code at Samrat Fashion?",
-      a: "Click any active voucher code on this Offers page to copy it to your clipboard. Add your chosen Nehru jackets or menswear to your cart, proceed to checkout, and paste the code into the coupon field for instant deduction before completing payment.",
+      a: "If a voucher code is shown on this Offers page, click it to copy it to your clipboard, add your chosen Nehru jackets or menswear to your cart, proceed to checkout, and paste the code into the coupon field for instant deduction before completing payment. If no code is shown, there is no active voucher right now — free shipping on orders ₹399 and above is automatic and needs no code.",
     },
     {
       q: "What is the minimum order value for complimentary delivery?",
@@ -437,7 +437,7 @@ export function getOffersFaqs(): Array<{ q: string; a: string }> {
     },
     {
       q: "Can I return or exchange items purchased during a promotion or sale?",
-      a: "Yes, our full 7-day doorstep return and size exchange policy applies to all promotional and discounted garments. If your item does not fit, simply submit an exchange or return request from your My Orders dashboard.",
+      a: "Yes, our full 7-day easy returns policy applies to all promotional and discounted garments. Submit a return from My Orders; after pickup and quality check the refund is credited within 5–7 business days and you can re-order the right size. For a direct size swap without re-ordering, raise a 'Size Exchange & Returns' support ticket and our team will arrange a manual exchange.",
     },
     {
       q: "What payment methods qualify for promotional discounts?",
@@ -457,7 +457,7 @@ export function getAccountFaqs(): Array<{ q: string; a: string }> {
     },
     {
       q: "How do I exchange an item for a different size?",
-      a: "Open My Orders, select the order containing the garment, and click Request Size Exchange. Choose your preferred replacement size; our team will arrange a doorstep courier pickup and dispatch your replacement size with zero extra shipping fee.",
+      a: "7-day easy returns for unworn, unwashed garments with original tags intact. Submit a return from My Orders; after pickup and quality check the refund is credited within 5–7 business days and you can re-order the right size. For a direct size swap without re-ordering, raise a 'Size Exchange & Returns' support ticket and our team will arrange a manual exchange.",
     },
     {
       q: "Can I update my delivery address after placing an order?",

@@ -163,7 +163,7 @@ test("getOffersFaqs provides 5 structured FAQs for the offers and discounts page
   const offersFaqs = getOffersFaqs();
   assert.strictEqual(offersFaqs.length, 5);
   assert.strictEqual(offersFaqs[0].q, "How do I apply a discount code at Samrat Fashion?");
-  assert.ok(offersFaqs[0].a.includes("Click any active voucher code"));
+  assert.ok(offersFaqs[0].a.includes("If a voucher code is shown on this Offers page"));
   assert.strictEqual(offersFaqs[1].q, "What is the minimum order value for complimentary delivery?");
   assert.ok(offersFaqs[1].a.includes("orders of ₹399 and above"));
 });
@@ -174,7 +174,7 @@ test("getAccountFaqs provides 5 structured FAQs for the customer account hub", (
   assert.strictEqual(accountFaqs[0].q, "How do I track my Nehru jacket or menswear shipment?");
   assert.ok(accountFaqs[0].a.includes("Track Order"));
   assert.strictEqual(accountFaqs[1].q, "How do I exchange an item for a different size?");
-  assert.ok(accountFaqs[1].a.includes("Request Size Exchange"));
+  assert.ok(accountFaqs[1].a.includes("7-day easy returns for unworn, unwashed garments with original tags intact"));
 });
 
 
