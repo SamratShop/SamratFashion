@@ -4,7 +4,6 @@ import { useEffect, useState, use, useCallback } from "react";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 import { StaffMockupManager } from "@/components/admin/StaffMockupManager";
 import { downloadOrViewInvoicePdf } from "@/lib/invoiceHelper";
@@ -29,31 +28,139 @@ function formatIstDateTime(value: string | Date): string {
   });
 }
 
-function getShipmentStatusClass(status: string): string {
-  switch (status) {
+function formatIstDateTimeShort(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const d = date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  });
+  const t = date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
+  return `${d}, ${t}`;
+}
+
+function formatPhoneNumber(phone?: string): string {
+  if (!phone) return "";
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 10) {
+    return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
+  }
+  if (cleaned.length === 12 && cleaned.startsWith("91")) {
+    const main = cleaned.slice(2);
+    return `+91 ${main.slice(0, 5)} ${main.slice(5)}`;
+  }
+  return phone;
+}
+
+function formatStatusLabel(status?: string): string {
+  if (!status) return "";
+  const customLabels: Record<string, string> = {
+    PICKED_UP: "Picked Up",
+    HANDED_OVER: "Handed Over",
+    READY_TO_SHIP: "Ready to Ship",
+    PICKUP_REQUESTED: "Pickup Requested",
+    IN_TRANSIT: "In Transit",
+    OUT_FOR_DELIVERY: "Out for Delivery",
+    QC_PASSED: "QC Passed",
+    QC_FAILED: "QC Failed",
+    PARTIALLY_CANCELLED: "Partially Cancelled",
+    REFUND_PROCESSING: "Refund Processing",
+    CONFIRMED: "Confirmed",
+    PROCESSING: "Processing",
+    SHIPPED: "Shipped",
+    DELIVERED: "Delivered",
+    CANCELLED: "Cancelled",
+    PAID: "Paid",
+    PENDING: "Pending",
+    UNALLOCATED: "Unallocated",
+    ALLOCATED: "Allocated",
+    PICKED: "Picked",
+    PACKED: "Packed",
+  };
+  if (customLabels[status.toUpperCase()]) return customLabels[status.toUpperCase()];
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function getStatusBadgeClass(status?: string): string {
+  switch (status?.toUpperCase()) {
+    case "PAID":
     case "DELIVERED":
-      return "bg-green-100 text-green-800 border-green-200";
-    case "CANCELLED":
-    case "RTO":
-      return "bg-error-container/20 text-error border-error/20";
-    case "NDR":
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    case "PICKUP_REQUESTED":
-      return "bg-amber-100 text-amber-800 border-amber-200";
-    case "PICKED_UP":
+    case "PROCESSED":
+    case "PASSED":
+    case "QC_PASSED":
+    case "ACTIVE":
+      return "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
     case "SHIPPED":
+    case "CONFIRMED":
+    case "PROCESSING":
+    case "AUTHORIZED":
+    case "CAPTURED":
+      return "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+    case "PICKED_UP":
+    case "PICKUP_REQUESTED":
     case "IN_TRANSIT":
     case "OUT_FOR_DELIVERY":
-      return "bg-primary/10 text-primary border-primary/20";
+    case "PICKED":
+    case "PACKED":
+    case "READY_TO_SHIP":
+    case "HANDED_OVER":
+    case "PENDING":
+    case "PARTIALLY_CANCELLED":
+    case "PARTIALLY CANCELLED":
+    case "NDR":
+      return "bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
+    case "CANCELLED":
+    case "FAILED":
+    case "QC_FAILED":
+    case "RTO":
+    case "REFUND_FAILED":
+      return "bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800";
     default:
       return "bg-surface-container-high text-on-surface border-outline-variant/30";
   }
 }
 
+function getItemVariantImage(item: any): string {
+  if (item.productId && typeof item.productId === "object") {
+    const variants = item.productId.variants || [];
+    const colorNorm = (item.selectedColor || "").trim().toLowerCase();
+    const sizeNorm = (item.selectedSize || "").trim().toUpperCase();
+
+    // 1. Try exact match on color and size with image
+    const exact = variants.find(
+      (v: any) =>
+        (v.color || "").trim().toLowerCase() === colorNorm &&
+        (v.size || "").trim().toUpperCase() === sizeNorm &&
+        v.images &&
+        v.images.length > 0
+    );
+    if (exact?.images?.[0]) return exact.images[0];
+
+    // 2. Try match on color with image
+    const colorMatch = variants.find(
+      (v: any) =>
+        (v.color || "").trim().toLowerCase() === colorNorm &&
+        v.images &&
+        v.images.length > 0
+    );
+    if (colorMatch?.images?.[0]) return colorMatch.images[0];
+  }
+  return item.productImage || "";
+}
+
 export default function AdminOrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const orderId = unwrappedParams.id;
-  const router = useRouter();
   
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +188,22 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
   const [pickupDate, setPickupDate] = useState(() => istDateInputValue(1));
   const [shipmentNotice, setShipmentNotice] = useState("");
   const [showTrackingHistory, setShowTrackingHistory] = useState(false);
+  const [copiedAwb, setCopiedAwb] = useState(false);
+  const [copiedPaymentId, setCopiedPaymentId] = useState(false);
+
+  const handleCopyAwb = (awb: string) => {
+    if (!awb) return;
+    navigator.clipboard.writeText(awb);
+    setCopiedAwb(true);
+    setTimeout(() => setCopiedAwb(false), 2000);
+  };
+
+  const handleCopyPaymentId = (pid: string) => {
+    if (!pid) return;
+    navigator.clipboard.writeText(pid);
+    setCopiedPaymentId(true);
+    setTimeout(() => setCopiedPaymentId(false), 2000);
+  };
 
   const [isCancelItemsModalOpen, setIsCancelItemsModalOpen] = useState(false);
   const [adminCancelItemsMap, setAdminCancelItemsMap] = useState<Record<string, number>>({});
@@ -477,23 +600,11 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setStatusLoading(false);
     }
   };
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case "DELIVERED": return "bg-[#eef0ff] text-[#003ea8] border-[#b4c5ff]";
-      case "CANCELLED": return "bg-error-container/20 text-error border-error/20";
-      case "PENDING": return "bg-secondary-container/10 text-secondary border-secondary/20";
-      case "SHIPPED": return "bg-surface-container-high text-on-surface border-outline-variant/30";
-      case "PROCESSING": return "bg-secondary-container/10 text-secondary border-secondary/20";
-      case "CONFIRMED": return "bg-surface-container-high text-on-surface border-outline-variant/30";
-      default: return "bg-surface-container-high text-on-surface border-outline-variant/30";
-    }
-  };
-
   if (loading) return <div className="p-8 text-center text-on-surface-variant">Loading order details...</div>;
   if (error) return <div className="p-8 text-error bg-error-container/20">{error}</div>;
   if (!data) return <div className="p-8 text-on-surface-variant">Order not found</div>;
 
-  const { order, payment } = data;
+  const { order, payment, paymentAttempts } = data;
 
   // Order Lifecycle Timeline Stage helper
   const getTimelineStages = () => {
@@ -530,7 +641,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
     : [];
 
   return (
-    <div className="flex flex-col gap-element-gap md:gap-gutter">
+    <div className="flex flex-col gap-element-gap md:gap-gutter pb-16">
       {/* Back Button */}
       <div>
         <Link href="/admin/orders" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label-caps text-[12px]">
@@ -549,61 +660,43 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 Partially Cancelled
               </span>
             )}
-            <span className={`px-2.5 py-0.5 border rounded-full font-label-caps text-[10px] flex items-center gap-1 ${getStatusColor(order.status)}`}>
-              {order.status}
+            <span className={`px-2.5 py-0.5 border rounded-full font-label-caps text-[10px] font-bold flex items-center gap-1 ${getStatusBadgeClass(order.status)}`}>
+              {formatStatusLabel(order.status)}
             </span>
           </div>
-          <p className="font-body-sm text-xs sm:text-sm text-on-surface-variant flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[15px]">calendar_today</span>
-            {new Date(order.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          <p className="font-body-sm text-sm font-medium text-on-surface-variant flex items-center gap-1.5 mt-1.5">
+            <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+            <span>
+              {new Date(order.createdAt).toLocaleString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Kolkata',
+              })} IST
+            </span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+          {/* Routine Document Actions */}
           <button
             type="button"
             onClick={() => downloadOrViewInvoicePdf(order._id, `Invoice-${order.orderNumber}.pdf`)}
             className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+            title="Download Tax Invoice PDF"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
             <span>Tax Invoice</span>
           </button>
-          {order.paymentStatus === 'PAID' && order.status !== 'CANCELLED' && (
-            <button
-              type="button"
-              onClick={handleIssueRefund}
-              disabled={statusLoading}
-              className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[18px]">currency_rupee</span>
-              <span>Issue Refund</span>
-            </button>
-          )}
-          {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (
-            <>
-              <button 
-                type="button"
-                onClick={() => handleOpenCancelItemsModal()}
-                disabled={statusLoading}
-                className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/10 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/20 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">remove_shopping_cart</span>
-                <span>Cancel Items</span>
-              </button>
-              <button 
-                onClick={handleCancelOrder}
-                disabled={statusLoading}
-                className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/20 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/30 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[18px]">cancel</span>
-                <span>Cancel Order</span>
-              </button>
-            </>
-          )}
+
+          {/* Routine Workflow Progress Actions */}
           {order.status === 'CONFIRMED' && (
             <button 
               onClick={() => handleStatusChange('PROCESSING')}
               disabled={statusLoading}
-              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50"
             >
               <span>Move to Processing</span>
             </button>
@@ -637,12 +730,54 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 }
               }}
               disabled={statusLoading}
-              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50"
+              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50 shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Mark Delivered</span>
             </button>
           )}
+
+          {/* Visual Separator for Destructive / Financial Actions */}
+          {(order.paymentStatus === 'PAID' || ['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status)) && (
+            <div className="h-6 w-px bg-outline-variant/30 hidden sm:block mx-1" />
+          )}
+
+          {/* Sensitive / Destructive Actions (Grouped & Visually Distinct) */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {order.paymentStatus === 'PAID' && order.status !== 'CANCELLED' && (
+              <button
+                type="button"
+                onClick={handleIssueRefund}
+                disabled={statusLoading}
+                className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded-lg font-mono text-xs uppercase font-bold hover:bg-amber-500/20 transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-50"
+                title="Initiate refund via payment gateway"
+              >
+                <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">currency_rupee</span>
+                <span>Issue Refund</span>
+              </button>
+            )}
+            {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (
+              <>
+                <button 
+                  type="button"
+                  onClick={() => handleOpenCancelItemsModal()}
+                  disabled={statusLoading}
+                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/10 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/20 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">remove_shopping_cart</span>
+                  <span>Cancel Items</span>
+                </button>
+                <button 
+                  onClick={handleCancelOrder}
+                  disabled={statusLoading}
+                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/20 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/30 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">cancel</span>
+                  <span>Cancel Order</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
       {/* Order Lifecycle Step Timeline Card */}
@@ -651,7 +786,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
         {/* Desktop / Tablet view */}
         <div className="hidden md:flex justify-between items-center gap-2 relative">
           <div className="absolute top-5 left-8 right-8 h-0.5 bg-outline-variant/30 -translate-y-1/2 z-0" />
-          {timelineStages.map((stage, idx) => {
+          {timelineStages.map((stage) => {
             const isComplete = stage.status === 'complete';
             const isFailed = stage.status === 'failed';
             return (
@@ -670,17 +805,19 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   ) : isFailed ? (
                     <span className="material-symbols-outlined text-[20px]">close</span>
                   ) : (
-                    <span>{idx + 1}</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-outline-variant/60" />
                   )}
                 </div>
                 <div className="flex flex-col">
                   <span className={`font-label-caps text-xs font-bold ${isComplete ? 'text-on-surface' : isFailed ? 'text-error' : 'text-on-surface-variant/60'}`}>
                     {stage.label}
                   </span>
-                  {stage.date && (
-                    <span className="text-[11px] text-on-surface-variant/70 font-mono mt-0.5">
-                      {new Date(stage.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  {stage.date ? (
+                    <span className="text-[11px] text-on-surface-variant/80 font-mono mt-0.5">
+                      {formatIstDateTimeShort(stage.date)} IST
                     </span>
+                  ) : (
+                    <span className="text-[10px] text-on-surface-variant/40 font-mono mt-0.5 italic">Pending</span>
                   )}
                 </div>
               </div>
@@ -691,7 +828,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
         {/* Mobile View: Vertical Step Flow */}
         <div className="flex md:hidden flex-col gap-3.5 relative pl-2">
           <div className="absolute top-4 bottom-4 left-6 w-0.5 bg-outline-variant/30 z-0" />
-          {timelineStages.map((stage, idx) => {
+          {timelineStages.map((stage) => {
             const isComplete = stage.status === 'complete';
             const isFailed = stage.status === 'failed';
             return (
@@ -710,17 +847,19 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   ) : isFailed ? (
                     <span className="material-symbols-outlined text-[16px]">close</span>
                   ) : (
-                    <span>{idx + 1}</span>
+                    <span className="w-2 h-2 rounded-full bg-outline-variant/60" />
                   )}
                 </div>
                 <div className="flex-1 flex items-center justify-between min-w-0 bg-surface-container-low/40 p-2.5 rounded-lg border border-outline-variant/20">
                   <span className={`font-label-caps text-xs font-bold truncate ${isComplete ? 'text-on-surface' : isFailed ? 'text-error' : 'text-on-surface-variant/60'}`}>
                     {stage.label}
                   </span>
-                  {stage.date && (
+                  {stage.date ? (
                     <span className="text-[10px] text-on-surface-variant font-mono shrink-0 ml-2">
-                      {new Date(stage.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      {formatIstDateTimeShort(stage.date)} IST
                     </span>
+                  ) : (
+                    <span className="text-[10px] text-on-surface-variant/40 font-mono shrink-0 ml-2 italic">Pending</span>
                   )}
                 </div>
               </div>
@@ -730,300 +869,351 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       </div>
 
 
-      {/* Main Content Grid */}
       {/* Main Content Grid: Responsive 12-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Primary Operational Column (Left) */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-      {/* Warehouse Fulfillment Pipeline Card */}
-      {fulfillment && (
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-outline-variant/20">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[20px]">warehouse</span>
-                <h3 className="font-label-caps text-xs font-bold text-on-surface uppercase tracking-wider">Warehouse Operations (Phase 10C)</h3>
+        {/* Primary Operational Column (Left - 7 cols) */}
+        <div className="lg:col-span-7 xl:col-span-7 space-y-6">
+          {/* Warehouse Fulfillment Pipeline Card */}
+          {fulfillment && (
+            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-outline-variant/20">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-[20px]">warehouse</span>
+                    <h3 className="font-label-caps text-xs font-bold text-on-surface uppercase tracking-wider">
+                      Warehouse Operations
+                    </h3>
+                  </div>
+                  {/* Step pipeline highlighting completed/active stages */}
+                  {(() => {
+                    const stages = [
+                      {
+                        id: "pick",
+                        name: "Pick",
+                        completed: ["PICKED", "PACKED", "QC_PASSED", "READY_TO_SHIP", "HANDED_OVER"].includes(fulfillment.status),
+                        active: ["UNALLOCATED", "ALLOCATED"].includes(fulfillment.status),
+                      },
+                      {
+                        id: "pack",
+                        name: "Pack",
+                        completed: ["PACKED", "QC_PASSED", "READY_TO_SHIP", "HANDED_OVER"].includes(fulfillment.status),
+                        active: fulfillment.status === "PICKED",
+                      },
+                      {
+                        id: "qc",
+                        name: "QC",
+                        completed: ["QC_PASSED", "READY_TO_SHIP", "HANDED_OVER"].includes(fulfillment.status),
+                        active: fulfillment.status === "PACKED",
+                      },
+                      {
+                        id: "ready",
+                        name: "Ready to Ship",
+                        completed: ["READY_TO_SHIP", "HANDED_OVER"].includes(fulfillment.status),
+                        active: fulfillment.status === "QC_PASSED",
+                      },
+                    ];
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {stages.map((st, i) => (
+                          <div key={st.id} className="flex items-center gap-1.5">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-mono font-medium ${
+                                st.completed
+                                  ? "bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                  : st.active
+                                  ? "bg-primary/10 text-primary border border-primary/30 font-bold ring-1 ring-primary/20"
+                                  : "bg-surface-container text-on-surface-variant/60 border border-outline-variant/20"
+                              }`}
+                            >
+                              {st.completed ? (
+                                <span className="material-symbols-outlined text-[13px] text-emerald-600">check</span>
+                              ) : st.active ? (
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              ) : null}
+                              <span>{st.name}</span>
+                            </span>
+                            {i < stages.length - 1 && (
+                              <span className="text-on-surface-variant/40 text-xs">→</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className={`px-3 py-1 rounded-full font-label-caps text-[11px] font-bold border ${getStatusBadgeClass(fulfillment.status)}`}>
+                    {formatStatusLabel(fulfillment.status)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDownloadPackingSlip}
+                    className="px-3.5 py-2 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px] shadow-2xs"
+                    title="Download Warehouse Packing Slip PDF"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">description</span>
+                    <span>Packing Slip PDF</span>
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-on-surface-variant mt-1">Pick → Pack → Quality Check (QC) → Ready to Ship</p>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {['UNALLOCATED', 'ALLOCATED'].includes(fulfillment.status) && (
+                  <button
+                    onClick={handlePickFulfillment}
+                    disabled={statusLoading}
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">inventory_2</span>
+                    1. Pick Items
+                  </button>
+                )}
+
+                {['PICKED'].includes(fulfillment.status) && (
+                  <button
+                    onClick={handlePackFulfillment}
+                    disabled={statusLoading}
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">package_2</span>
+                    2. Confirm Packing
+                  </button>
+                )}
+
+                {['PACKED'].includes(fulfillment.status) && (
+                  <>
+                    <button
+                      onClick={() => handleQCFulfillment("PASSED")}
+                      disabled={statusLoading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-label-caps text-xs hover:bg-green-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">verified</span>
+                      3. QC Pass
+                    </button>
+                    <button
+                      onClick={() => handleQCFulfillment("FAILED")}
+                      disabled={statusLoading}
+                      className="px-4 py-2 bg-error-container/20 text-error border border-error/20 rounded-lg font-label-caps text-xs hover:bg-error-container/30 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">dangerous</span>
+                      3. QC Fail
+                    </button>
+                  </>
+                )}
+
+                {['QC_PASSED'].includes(fulfillment.status) && (
+                  <button
+                    onClick={handleReadyToShipFulfillment}
+                    disabled={statusLoading}
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">local_shipping</span>
+                    4. Mark Ready to Ship
+                  </button>
+                )}
+
+                {['READY_TO_SHIP', 'HANDED_OVER'].includes(fulfillment.status) && (
+                  <span className="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
+                    <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
+                    <span>Fulfillment Complete ({formatStatusLabel(fulfillment.status)})</span>
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-full font-label-caps text-[11px] font-bold">
-                {fulfillment.status}
+          )}
+
+          {actionError && (
+            <div className="p-4 bg-error-container/20 text-error rounded-md flex items-center gap-2 border border-error/20 font-body-sm">
+              <span className="material-symbols-outlined">error</span>
+              {actionError}
+            </div>
+          )}
+
+          {/* NimbusPost Multi-Courier Rate Comparison (Available only when Fulfillment is READY_TO_SHIP and no shipment exists) */}
+          {fulfillment && fulfillment.status === 'READY_TO_SHIP' && !shipment && (
+            <NimbusPostCourierComparison
+              orderId={orderId}
+              destinationPostalCode={order.shippingAddress?.postalCode}
+              fulfillment={fulfillment}
+              onPackageConfirmed={fetchOrder}
+            />
+          )}
+
+          {/* Guidance banner when fulfillment has not yet reached READY_TO_SHIP */}
+          {fulfillment && fulfillment.status !== 'READY_TO_SHIP' && !shipment && ['CONFIRMED', 'PROCESSING'].includes(order.status) && (
+            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-[22px]">compare_arrows</span>
+                <div>
+                  <p className="font-bold text-on-surface uppercase tracking-wide">
+                    NimbusPost Multi-Courier Comparison (Locked)
+                  </p>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    Rate comparison activates automatically once warehouse fulfillment reaches <strong className="text-primary">READY_TO_SHIP</strong>. Current stage: <span className="font-bold uppercase text-on-surface">{formatStatusLabel(fulfillment.status)}</span>.
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-surface-container-high rounded text-[10px] font-bold uppercase text-neutral-600 self-start sm:self-center shrink-0">
+                Step 4: Ready to Ship Required
               </span>
-              <button
-                type="button"
-                onClick={handleDownloadPackingSlip}
-                className="px-3 py-1.5 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-label-caps text-[11px] hover:bg-surface-container transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">description</span>
-                Packing Slip PDF
-              </button>
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {['UNALLOCATED', 'ALLOCATED'].includes(fulfillment.status) && (
-              <button
-                onClick={handlePickFulfillment}
-                disabled={statusLoading}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">inventory_2</span>
-                1. Pick Items
-              </button>
-            )}
-
-            {['PICKED'].includes(fulfillment.status) && (
-              <button
-                onClick={handlePackFulfillment}
-                disabled={statusLoading}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">package_2</span>
-                2. Confirm Packing
-              </button>
-            )}
-
-            {['PACKED'].includes(fulfillment.status) && (
-              <>
-                <button
-                  onClick={() => handleQCFulfillment("PASSED")}
-                  disabled={statusLoading}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-label-caps text-xs hover:bg-green-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-[16px]">verified</span>
-                  3. QC Pass
-                </button>
-                <button
-                  onClick={() => handleQCFulfillment("FAILED")}
-                  disabled={statusLoading}
-                  className="px-4 py-2 bg-error-container/20 text-error border border-error/20 rounded-lg font-label-caps text-xs hover:bg-error-container/30 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-[16px]">dangerous</span>
-                  3. QC Fail
-                </button>
-              </>
-            )}
-
-            {['QC_PASSED'].includes(fulfillment.status) && (
-              <button
-                onClick={handleReadyToShipFulfillment}
-                disabled={statusLoading}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">local_shipping</span>
-                4. Mark Ready to Ship
-              </button>
-            )}
-
-            {['READY_TO_SHIP', 'HANDED_OVER'].includes(fulfillment.status) && (
-              <span className="text-xs text-on-surface-variant flex items-center gap-1">
-                <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
-                Fulfillment Complete ({fulfillment.status})
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {actionError && (
-        <div className="p-4 bg-error-container/20 text-error rounded-md flex items-center gap-2 border border-error/20 font-body-sm">
-          <span className="material-symbols-outlined">error</span>
-          {actionError}
-        </div>
-      )}
-
-      {/* NimbusPost Multi-Courier Rate Comparison (Available only when Fulfillment is READY_TO_SHIP and no shipment exists) */}
-      {fulfillment && fulfillment.status === 'READY_TO_SHIP' && !shipment && (
-        <NimbusPostCourierComparison
-          orderId={orderId}
-          destinationPostalCode={order.shippingAddress?.postalCode}
-          fulfillment={fulfillment}
-          onPackageConfirmed={fetchOrder}
-        />
-      )}
-
-      {/* Guidance banner when fulfillment has not yet reached READY_TO_SHIP */}
-      {fulfillment && fulfillment.status !== 'READY_TO_SHIP' && !shipment && ['CONFIRMED', 'PROCESSING'].includes(order.status) && (
-        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-[22px]">compare_arrows</span>
-            <div>
-              <p className="font-bold text-on-surface uppercase tracking-wide">
-                NimbusPost Multi-Courier Comparison (Locked)
-              </p>
-              <p className="text-[11px] text-on-surface-variant mt-0.5">
-                Rate comparison activates automatically once warehouse fulfillment reaches <strong className="text-primary">READY_TO_SHIP</strong>. Current stage: <span className="font-bold uppercase text-on-surface">{fulfillment.status}</span>.
-              </p>
-            </div>
-          </div>
-          <span className="px-2.5 py-1 bg-surface-container-high rounded text-[10px] font-bold uppercase text-neutral-600 self-start sm:self-center shrink-0">
-            Step 4: Ready to Ship Required
-          </span>
-        </div>
-      )}
+          )}
 
           {/* Order Items */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 overflow-hidden">
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 overflow-hidden shadow-xs">
             <div className="p-4 border-b border-outline-variant/20 bg-surface-bright flex justify-between items-center">
               <h3 className="font-headline-sm text-headline-sm text-on-surface">Order Items</h3>
-              <span className="font-label-caps text-label-caps text-on-surface-variant">{order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}</span>
+              <span className="font-label-caps text-label-caps text-on-surface-variant font-medium">
+                {order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}
+              </span>
             </div>
             <div className="p-4 space-y-4">
-              {order.items.map((item: any, i: number) => (
-                <div key={i} className="flex flex-col sm:flex-row items-start gap-4 pb-4 border-b border-outline-variant/20 last:border-0 last:pb-0">
-                  <div
-                    onClick={() => handleOpenInspect(item)}
-                    className="w-20 h-24 bg-surface-container-low rounded border border-outline-variant/20 overflow-hidden shrink-0 relative cursor-pointer group/img hover:border-primary transition-all"
-                    title="Click to cross-confirm product details"
-                  >
-                    {item.productImage ? (
-                      <Image src={item.productImage} alt={item.productName} fill className="object-cover group-hover/img:scale-105 transition-transform" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-outline">
-                        <span className="material-symbols-outlined">image</span>
-                      </div>
-                    )}
-                    <span className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white transition-opacity">
-                      <span className="material-symbols-outlined text-[20px]">zoom_in</span>
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0 w-full">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4
-                          onClick={() => handleOpenInspect(item)}
-                          className="font-headline-sm text-[16px] text-on-surface truncate pr-2 hover:text-primary cursor-pointer transition-colors"
-                          title="Click to cross-confirm product details"
-                        >
-                          {item.productName}
-                        </h4>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="px-2 py-0.5 bg-surface-container-high rounded text-[10px] font-label-caps text-on-surface">Size: {item.selectedSize}</span>
-                          <span className="px-2 py-0.5 bg-surface-container-high rounded text-[10px] font-label-caps text-on-surface">Color: {item.selectedColor}</span>
-                          {item.cancelledQuantity && item.cancelledQuantity > 0 ? (
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                              item.cancelledQuantity >= item.quantity
-                                ? 'bg-error-container/20 text-error border border-error/20'
-                                : 'bg-amber-100 text-amber-800 border border-amber-300'
-                            }`}>
-                              {item.cancelledQuantity >= item.quantity
-                                ? 'CANCELLED'
-                                : `CANCELLED: ${item.cancelledQuantity}/${item.quantity}`}
-                            </span>
-                          ) : null}
-                          <button
-                            type="button"
+              {order.items.map((item: any, i: number) => {
+                const variantImg = getItemVariantImage(item);
+                const isItemCancelled = (item.cancelledQuantity || 0) >= item.quantity;
+                return (
+                  <div key={i} className="flex flex-col sm:flex-row items-start gap-4 pb-4 border-b border-outline-variant/20 last:border-0 last:pb-0">
+                    <div
+                      onClick={() => handleOpenInspect(item)}
+                      className="w-20 h-24 bg-surface-container-low rounded border border-outline-variant/20 overflow-hidden shrink-0 relative cursor-pointer group/img hover:border-primary transition-all"
+                      title="Click to verify product specs and inventory"
+                    >
+                      {variantImg ? (
+                        <Image src={variantImg} alt={item.productName} fill className="object-cover group-hover/img:scale-105 transition-transform" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-outline">
+                          <span className="material-symbols-outlined">image</span>
+                        </div>
+                      )}
+                      <span className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white transition-opacity">
+                        <span className="material-symbols-outlined text-[20px]">zoom_in</span>
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <h4
                             onClick={() => handleOpenInspect(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded font-label-caps text-[10px] font-bold transition-colors cursor-pointer"
-                            title="Cross-confirm product and view live inventory"
+                            className="font-headline-sm text-[16px] text-on-surface truncate pr-2 hover:text-primary cursor-pointer transition-colors"
+                            title="Click to verify product details"
                           >
-                            <span className="material-symbols-outlined text-[13px]">search_check</span>
-                            <span>Cross-Confirm</span>
-                          </button>
-                          {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (item.quantity - (item.cancelledQuantity || 0) > 0) && (
+                            {item.productName}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className="px-2.5 py-0.5 bg-surface-container-high rounded text-[11px] font-mono text-on-surface">
+                              Size: {item.selectedSize}
+                            </span>
+                            <span className="px-2.5 py-0.5 bg-surface-container-high rounded text-[11px] font-mono text-on-surface">
+                              Color: {item.selectedColor}
+                            </span>
+                            {item.cancelledQuantity && item.cancelledQuantity > 0 ? (
+                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                item.cancelledQuantity >= item.quantity
+                                  ? 'bg-error-container/20 text-error border border-error/20'
+                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}>
+                                {item.cancelledQuantity >= item.quantity
+                                  ? 'CANCELLED'
+                                  : `CANCELLED: ${item.cancelledQuantity}/${item.quantity}`}
+                              </span>
+                            ) : null}
                             <button
                               type="button"
-                              onClick={() => handleOpenCancelItemsModal(item._id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-error-container/10 hover:bg-error-container/20 text-error rounded font-label-caps text-[10px] font-bold transition-colors cursor-pointer"
-                              title="Cancel remaining quantity of this item"
+                              onClick={() => handleOpenInspect(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded font-label-caps text-[10px] font-bold transition-colors cursor-pointer"
+                              title="Verify ordered variant against live catalog & warehouse inventory"
                             >
-                              <span className="material-symbols-outlined text-[13px]">cancel</span>
-                              <span>Cancel Item</span>
+                              <span className="material-symbols-outlined text-[13px]">inventory_2</span>
+                              <span>Verify Variant Stock</span>
                             </button>
-                          )}
+                            {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (item.quantity - (item.cancelledQuantity || 0) > 0) && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCancelItemsModal(item._id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-error-container/10 hover:bg-error-container/20 text-error rounded font-label-caps text-[10px] font-bold transition-colors cursor-pointer"
+                                title="Cancel remaining quantity of this item"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">cancel</span>
+                                <span>Cancel Item</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-price-lg text-[18px] ${(item.cancelledQuantity || 0) >= item.quantity ? 'line-through text-outline' : 'text-on-surface'}`}>
-                          ₹{item.unitPrice.toLocaleString()}
-                        </div>
-                        {item.cancelledValue ? (
-                          <span className="text-[11px] font-mono text-error block">Refunded: ₹{item.cancelledValue}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-end mt-4">
-                      <div className="font-body-sm text-body-sm text-on-surface-variant">
-                        Qty: {item.quantity}
-                        {item.cancelledQuantity && item.cancelledQuantity > 0 ? (
-                          <span className="text-error font-medium ml-1.5">
-                            ({item.quantity - item.cancelledQuantity} active, {item.cancelledQuantity} cancelled)
+
+                      {/* Clean Grouped Pricing Block */}
+                      <div className="mt-3 p-3 bg-surface-container-low/60 rounded-lg border border-outline-variant/20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                        <div>
+                          <span className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider block">Unit Price</span>
+                          <span className={`font-bold text-sm ${isItemCancelled ? 'line-through text-outline' : 'text-on-surface'}`}>
+                            ₹{item.unitPrice.toLocaleString('en-IN')}
                           </span>
-                        ) : null}
+                          {item.cancelledValue ? (
+                            <span className="text-[10px] font-mono text-error block">Refunded: ₹{item.cancelledValue}</span>
+                          ) : null}
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider block">Quantity</span>
+                          <span className="font-bold text-sm text-on-surface">
+                            {item.quantity} unit{item.quantity > 1 ? "s" : ""}
+                            {item.cancelledQuantity && item.cancelledQuantity > 0 ? (
+                              <span className="text-error text-xs font-medium ml-1">
+                                ({item.quantity - item.cancelledQuantity} active, {item.cancelledQuantity} cancelled)
+                              </span>
+                            ) : null}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider block">Total</span>
+                          <span className={`font-bold text-base text-primary ${isItemCancelled ? 'line-through text-outline' : ''}`}>
+                            ₹{item.lineTotal.toLocaleString('en-IN')}
+                          </span>
+                        </div>
                       </div>
-                      <div className={`text-right font-price-lg text-[18px] pt-1 ${(item.cancelledQuantity || 0) >= item.quantity ? 'line-through text-outline' : 'text-on-surface'}`}>
-                        Total: ₹{item.lineTotal.toLocaleString()}
-                      </div>
+
+                      {(item.isCustomized || item.customDesignId || item.designFiles?.length || item.customizationNotes) && (
+                        <div className="mt-4 pt-4 border-t border-outline-variant/20">
+                          <StaffMockupManager orderId={order._id} item={item} onRefresh={fetchOrder} />
+                        </div>
+                      )}
                     </div>
-
-                    {(item.isCustomized || item.customDesignId || item.designFiles?.length || item.customizationNotes) && (
-                      <div className="mt-4 pt-4 border-t border-outline-variant/20">
-                        <StaffMockupManager orderId={order._id} item={item} onRefresh={fetchOrder} />
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Secondary Context & Financials Column (Right / Sticky) */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6">
-          {/* Customer Card */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => router.push(`/admin/customers/${order.userId?._id}`)}>
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="font-headline-sm text-[16px] text-on-surface">Customer</h3>
-              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">arrow_outward</span>
-            </div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-headline-sm font-bold uppercase">
-                {order.userId?.name?.substring(0, 2) || "U"}
-              </div>
-              <div>
-                <p className="font-headline-sm text-[15px] text-on-surface">{order.userId?.name || "Unknown Customer"}</p>
-              </div>
-            </div>
-            <div className="space-y-2 font-body-sm text-[13px] text-on-surface-variant break-all">
-              <p className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px]">mail</span> {order.userId?.email}</p>
+                );
+              })}
             </div>
           </div>
 
-          {/* Shipping Address */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5">
-            <h3 className="font-headline-sm text-[16px] text-on-surface mb-4">Shipping Address</h3>
-            <div className="font-body-sm text-[13px] text-on-surface space-y-1">
-              <p className="font-medium text-foreground">{order.shippingAddress.fullName}</p>
-              <p className="text-on-surface-variant">{cleanAddressLine(order.shippingAddress.addressLine1)}</p>
-              {order.shippingAddress.addressLine2 && <p className="text-on-surface-variant">{cleanAddressLine(order.shippingAddress.addressLine2)}</p>}
-              <p className="text-on-surface-variant">{formatCityStatePin(order.shippingAddress)}</p>
-              <p className="text-on-surface-variant">{order.shippingAddress.country}</p>
-              {order.shippingAddress.phone && (
-                <p className="text-on-surface-variant font-mono pt-1">Phone: {order.shippingAddress.phone}</p>
-              )}
-              {order.shippingAddress.alternatePhone && (
-                <p className="text-on-surface-variant font-mono text-xs">Alt Phone: {order.shippingAddress.alternatePhone}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Logistics */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5">
+          {/* Logistics & Tracking Card */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 shadow-xs">
             <h3 className="font-headline-sm text-[16px] text-on-surface mb-4">Logistics</h3>
             
             {shipment ? (
               <div className="space-y-4">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-label-caps text-[10px] text-on-surface-variant mb-1">Shipping Courier</p>
-                    <p className="font-body-sm text-[14px] text-on-surface truncate">{shipment.carrier}</p>
-                    <p className="font-label-caps text-[11px] text-primary mt-1 font-medium break-all">
-                      AWB: {shipment.awbNumber || shipment.trackingNumber}
-                    </p>
+                    <p className="font-label-caps text-[10px] text-on-surface-variant mb-1 uppercase font-bold tracking-wider">Shipping Courier</p>
+                    <p className="font-headline-sm text-[15px] font-bold text-on-surface truncate">{shipment.carrier}</p>
+                    
+                    {/* AWB with copy button */}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="font-mono text-xs font-bold text-primary select-all">
+                        AWB: {shipment.awbNumber || shipment.trackingNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAwb(shipment.awbNumber || shipment.trackingNumber)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-mono transition-colors cursor-pointer"
+                        title="Copy AWB to clipboard"
+                      >
+                        <span className="material-symbols-outlined text-[13px]">
+                          {copiedAwb ? "check" : "content_copy"}
+                        </span>
+                        <span>{copiedAwb ? "Copied" : "Copy"}</span>
+                      </button>
+                    </div>
                   </div>
-                  <span className={`shrink-0 px-2 py-1 rounded border font-label-caps text-[10px] font-bold ${getShipmentStatusClass(shipment.status)}`}>
-                    {shipment.status}
+                  <span className={`shrink-0 px-2.5 py-1 rounded font-label-caps text-[10px] font-bold border ${getStatusBadgeClass(shipment.status)}`}>
+                    {formatStatusLabel(shipment.status)}
                   </span>
                 </div>
 
@@ -1082,14 +1272,15 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Routine Logistics Buttons: Clearly Separated */}
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
                   <button
                     type="button"
                     onClick={handleDownloadShippingLabel}
-                    className="min-h-[38px] py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-label-caps text-[11px] hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 min-h-[40px] px-3.5 py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[16px]">label</span>
-                    Print Shipping Label (4x6)
+                    <span className="material-symbols-outlined text-[18px]">label</span>
+                    <span className="whitespace-nowrap">Print Shipping Label (4x6)</span>
                   </button>
 
                   {shipmentProviderIsIntegrated && shipment.status !== "CANCELLED" && (
@@ -1097,50 +1288,58 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                       type="button"
                       onClick={handleRefreshTracking}
                       disabled={shipmentAction !== null}
-                      className="min-h-[38px] py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-label-caps text-[11px] hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="flex-1 min-h-[40px] px-3.5 py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
                     >
-                      <span className={`material-symbols-outlined text-[16px] ${shipmentAction === "tracking" ? "animate-spin" : ""}`}>
-                        {shipmentAction === "tracking" ? "sync" : "tracking"}
+                      <span className={`material-symbols-outlined text-[18px] ${shipmentAction === "tracking" ? "animate-spin" : ""}`}>
+                        {shipmentAction === "tracking" ? "sync" : "refresh"}
                       </span>
-                      {shipmentAction === "tracking" ? "Refreshing..." : "Refresh Tracking"}
-                    </button>
-                  )}
-
-                  {canCancelShipment && (
-                    <button
-                      type="button"
-                      onClick={handleCancelShipment}
-                      disabled={shipmentAction !== null}
-                      className="sm:col-span-2 min-h-[38px] py-2 bg-error-container/20 text-error border border-error/20 rounded-lg font-label-caps text-[11px] hover:bg-error-container/30 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    >
-                      <span className={`material-symbols-outlined text-[16px] ${shipmentAction === "cancel" ? "animate-spin" : ""}`}>
-                        {shipmentAction === "cancel" ? "sync" : "cancel"}
+                      <span className="whitespace-nowrap">
+                        {shipmentAction === "tracking" ? "Refreshing..." : "Refresh Tracking"}
                       </span>
-                      {shipmentAction === "cancel" ? "Cancelling..." : "Cancel Shipment"}
                     </button>
                   )}
                 </div>
 
+                {/* Tracking History Accordion with Collapsed 1-Line Preview */}
                 {trackingHistory.length > 0 && (
-                  <div className="pt-1">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setShowTrackingHistory((current) => !current)}
                       aria-expanded={showTrackingHistory}
-                      className="w-full flex items-center justify-between gap-2 text-left font-label-caps text-[10px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-on-surface cursor-pointer"
+                      className="w-full flex items-center justify-between gap-2 text-left font-label-caps text-[11px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-on-surface cursor-pointer"
                     >
-                      <span>Tracking History ({trackingHistory.length})</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px]">local_shipping</span>
+                        <span>Tracking History ({trackingHistory.length})</span>
+                      </div>
                       <span className="material-symbols-outlined text-[18px]">
                         {showTrackingHistory ? "expand_less" : "expand_more"}
                       </span>
                     </button>
 
+                    {/* 1-line latest tracking preview when collapsed */}
+                    {!showTrackingHistory && (
+                      <div className="mt-2 px-3 py-2 bg-surface-container-low rounded-lg border border-outline-variant/20 text-[11px] font-mono flex items-center justify-between text-on-surface-variant">
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                          <span className="font-bold text-on-surface truncate">
+                            {formatStatusLabel(trackingHistory[trackingHistory.length - 1]?.status)}:
+                          </span>
+                          <span className="truncate">{trackingHistory[trackingHistory.length - 1]?.description}</span>
+                        </div>
+                        <span className="text-[10px] text-outline shrink-0 ml-2">
+                          {formatIstDateTime(trackingHistory[trackingHistory.length - 1]?.timestamp)} IST
+                        </span>
+                      </div>
+                    )}
+
                     {showTrackingHistory && (
-                      <ol className="mt-2 space-y-3 border-l-2 border-outline-variant/30 pl-3 max-h-64 overflow-y-auto">
+                      <ol className="mt-3 space-y-3 border-l-2 border-outline-variant/30 pl-3 max-h-64 overflow-y-auto">
                         {trackingHistory.slice(-10).reverse().map((event: any, index: number) => (
                           <li key={event.providerEventId || `${event.status}-${index}`} className="relative font-mono text-[11px]">
                             <span className="absolute -left-[17px] top-1 w-2 h-2 rounded-full bg-primary" />
-                            <p className="font-bold text-on-surface">{event.status}</p>
+                            <p className="font-bold text-on-surface">{formatStatusLabel(event.status)}</p>
                             <p className="text-on-surface-variant">{event.description}</p>
                             <p className="text-[10px] text-outline mt-0.5">
                               {formatIstDateTime(event.timestamp)} IST
@@ -1152,13 +1351,90 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                     )}
                   </div>
                 )}
+
+                {/* Cancel Shipment: Demoted & Positioned Safely at Bottom */}
+                {canCancelShipment && (
+                  <div className="pt-3 mt-3 border-t border-outline-variant/20 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleCancelShipment}
+                      disabled={shipmentAction !== null}
+                      className="text-[11px] font-mono text-error/70 hover:text-error hover:underline flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer p-1"
+                      title="Cancel courier shipment with delivery provider"
+                    >
+                      <span className={`material-symbols-outlined text-[15px] ${shipmentAction === "cancel" ? "animate-spin" : ""}`}>
+                        {shipmentAction === "cancel" ? "sync" : "cancel"}
+                      </span>
+                      <span>{shipmentAction === "cancel" ? "Cancelling Shipment..." : "Cancel Shipment"}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="font-body-sm text-[13px] text-on-surface-variant italic">No shipment tracking data created yet.</p>
             )}
           </div>
+        </div>
 
-          {/* Financials & Payment */}
+        {/* Secondary Context & Financials Column (Right - 5 cols) */}
+        <div className="lg:col-span-5 xl:col-span-5 space-y-6 lg:sticky lg:top-6">
+          {/* Customer Card */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 shadow-xs">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-headline-sm text-[16px] text-on-surface">Customer</h3>
+              <Link
+                href={`/admin/customers/${order.userId?._id}`}
+                className="inline-flex items-center gap-1 text-[11px] font-mono text-primary hover:underline"
+                title="View customer profile"
+              >
+                <span>View Profile</span>
+                <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-headline-sm font-bold uppercase">
+                {order.userId?.name?.substring(0, 2) || "U"}
+              </div>
+              <div>
+                <p className="font-headline-sm text-[15px] text-on-surface">{order.userId?.name || "Unknown Customer"}</p>
+                <p className="text-xs text-on-surface-variant font-mono">{order.userId?.email}</p>
+              </div>
+            </div>
+            <div className="space-y-2 font-body-sm text-[13px] text-on-surface pt-2 border-t border-outline-variant/20">
+              {(order.shippingAddress?.phone || order.userId?.phone) && (
+                <p className="flex items-center gap-2 font-mono text-on-surface">
+                  <span className="material-symbols-outlined text-[16px] text-on-surface-variant">phone</span>
+                  <span>{formatPhoneNumber(order.shippingAddress?.phone || order.userId?.phone)}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-5 shadow-xs">
+            <h3 className="font-headline-sm text-[16px] text-on-surface mb-3">Shipping Address</h3>
+            <div className="font-body-sm text-[13px] text-on-surface space-y-1.5 leading-relaxed">
+              <p className="font-bold text-on-surface">{order.shippingAddress.fullName}</p>
+              <p className="text-on-surface">{cleanAddressLine(order.shippingAddress.addressLine1)}</p>
+              {order.shippingAddress.addressLine2 && <p className="text-on-surface">{cleanAddressLine(order.shippingAddress.addressLine2)}</p>}
+              <p className="text-on-surface">{formatCityStatePin(order.shippingAddress)}</p>
+              <p className="text-on-surface">{order.shippingAddress.country}</p>
+              {order.shippingAddress.phone && (
+                <p className="text-on-surface font-mono pt-1 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[15px] text-on-surface-variant">call</span>
+                  <span>{formatPhoneNumber(order.shippingAddress.phone)}</span>
+                </p>
+              )}
+              {order.shippingAddress.alternatePhone && (
+                <p className="text-on-surface font-mono text-xs flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[15px] text-on-surface-variant">call</span>
+                  <span>Alt Phone: {formatPhoneNumber(order.shippingAddress.alternatePhone)}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Financials & Payment Summary */}
           {(() => {
             const settledRefunds = (refunds || []).filter((r: any) => r.status === "PROCESSED");
             const pendingRefunds = (refunds || []).filter((r: any) => ["PENDING", "PROCESSING", "UNKNOWN"].includes(r.status));
@@ -1181,7 +1457,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
 
             // Header badge calculation
             let badgeLabel = order.paymentStatus;
-            let badgeClass = "bg-surface-container-high text-on-surface border-outline-variant/30";
+            let badgeClass = getStatusBadgeClass(order.paymentStatus);
 
             if (hasPending) {
               if (isFullySettled) {
@@ -1202,37 +1478,111 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
               badgeClass = "bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300";
             } else if (order.paymentStatus === "PAID") {
               badgeLabel = "PAID";
-              badgeClass = "bg-primary-container/20 text-primary border-primary/20";
+              badgeClass = getStatusBadgeClass("PAID");
             }
 
             return (
-              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 overflow-hidden">
+              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 overflow-hidden shadow-xs">
                 <div className="p-4 border-b border-outline-variant/20 bg-surface-bright flex justify-between items-center">
                   <h3 className="font-headline-sm text-headline-sm text-on-surface">Financial Summary</h3>
-                  <span className={`px-2 py-1 rounded font-label-caps text-[10px] font-bold border ${badgeClass}`}>
-                    {badgeLabel}
+                  <span className={`px-2.5 py-1 rounded font-label-caps text-[10px] font-bold border ${badgeClass}`}>
+                    {formatStatusLabel(badgeLabel)}
                   </span>
                 </div>
                 <div className="p-6">
                   <div className="space-y-3 font-body-sm text-body-sm text-on-surface">
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant">Subtotal</span>
-                      <span>₹{order.subtotal.toLocaleString()}</span>
+                      <span>₹{order.subtotal.toLocaleString('en-IN')}</span>
                     </div>
                     {order.discount > 0 && (
                       <div className="flex justify-between text-secondary">
                         <span>Discount</span>
-                        <span>-₹{order.discount.toLocaleString()}</span>
+                        <span>-₹{order.discount.toLocaleString('en-IN')}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant">Shipping</span>
-                      <span>₹{order.shipping.toLocaleString()}</span>
+                      <span>₹{order.shipping.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="h-px bg-outline-variant/20 my-2"></div>
                     <div className="flex justify-between items-center pt-2">
                       <span className="font-headline-sm text-[16px]">Grand Total</span>
-                      <span className="font-price-lg text-[24px]">₹{order.total.toLocaleString()}</span>
+                      <span className="font-price-lg text-[24px]">₹{order.total.toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {/* Payment Diagnostics Details */}
+                    <div className="mt-4 pt-4 border-t border-outline-variant/20 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-label-caps text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+                          Payment Details
+                        </span>
+                        <span className="font-mono text-[10px] text-on-surface-variant/70">
+                          {payment?.provider || (paymentAttempts && paymentAttempts.length > 0 ? "Razorpay" : "Online Gateway")}
+                        </span>
+                      </div>
+
+                      <div className="p-3 bg-surface-container-low/60 rounded-lg border border-outline-variant/20 space-y-2 font-mono text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-on-surface-variant text-[11px]">Method:</span>
+                          <span className="font-bold text-on-surface">
+                            {order.paymentMethod || payment?.provider || "Razorpay / Prepaid"}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-on-surface-variant text-[11px]">Gateway:</span>
+                          <span className="font-bold text-on-surface">
+                            {payment?.provider || (paymentAttempts?.length ? "RAZORPAY" : "Razorpay")}
+                          </span>
+                        </div>
+
+                        {(payment?.razorpayPaymentId || paymentAttempts?.find((p: any) => p.razorpayPaymentId)?.razorpayPaymentId) ? (
+                          <div className="flex justify-between items-center">
+                            <span className="text-on-surface-variant text-[11px]">Payment ID:</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-primary text-[11px] select-all">
+                                {payment?.razorpayPaymentId || paymentAttempts?.find((p: any) => p.razorpayPaymentId)?.razorpayPaymentId}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentId(payment?.razorpayPaymentId || paymentAttempts?.find((p: any) => p.razorpayPaymentId)?.razorpayPaymentId)}
+                                className="p-1 hover:bg-surface-container rounded text-on-surface-variant transition-colors cursor-pointer"
+                                title="Copy Payment ID"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">
+                                  {copiedPaymentId ? "check" : "content_copy"}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center text-on-surface-variant/60 text-[11px] italic">
+                            <span>Payment ID:</span>
+                            <span>Not available (Gateway ID pending)</span>
+                          </div>
+                        )}
+
+                        {paymentAttempts?.[0]?.razorpayOrderId && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-on-surface-variant text-[11px]">Gateway Order:</span>
+                            <span className="text-on-surface-variant font-mono text-[11px]">
+                              {paymentAttempts[0].razorpayOrderId}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-on-surface-variant text-[11px]">Paid At:</span>
+                          <span className="text-on-surface text-[11px]">
+                            {payment?.createdAt
+                              ? `${formatIstDateTime(payment.createdAt)} IST`
+                              : order.paymentStatus === "PAID"
+                              ? `${formatIstDateTime(order.updatedAt)} IST`
+                              : "Payment Pending"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {authoritativeSettled > 0 && (
@@ -1347,8 +1697,14 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
           })()}
         </div>
       </div>
+
+      {/* Page Bottom Footer / Subtle Whitespace */}
+      <div className="pt-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant/50 border-t border-outline-variant/10 mt-6">
+        <p>Order #{order.orderNumber} · Samrat Fashion Operations Hub</p>
+        <p>All timestamps in Indian Standard Time (IST)</p>
+      </div>
       
-      <div className="h-8"></div>
+      <div className="h-6"></div>
       {/* Product Cross-Confirmation Modal */}
       {inspectItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -1378,8 +1734,8 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
               {/* Top Summary Card */}
               <div className="flex flex-col sm:flex-row gap-5 p-4 rounded-xl bg-surface-container-low border border-outline-variant/30">
                 <div className="w-24 h-32 bg-surface-container rounded-lg overflow-hidden relative shrink-0 border border-outline-variant/40">
-                  {inspectItem.productImage ? (
-                    <Image src={inspectItem.productImage} alt={inspectItem.productName} fill className="object-cover" />
+                  {getItemVariantImage(inspectItem) ? (
+                    <Image src={getItemVariantImage(inspectItem)} alt={inspectItem.productName} fill className="object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-outline">
                       <span className="material-symbols-outlined text-3xl">image</span>
