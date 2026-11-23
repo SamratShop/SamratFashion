@@ -163,7 +163,10 @@ export const createShipment = catchAsync(async (req: AuthRequest, res: Response)
       items: order.items.map(item => ({
         productName: item.productName,
         quantity: item.quantity,
-        unitPrice: item.unitPrice
+        unitPrice: item.unitPrice,
+        sku: item.sku,
+        selectedColor: item.selectedColor,
+        selectedSize: item.selectedSize
       })),
       packageDetails: pkgDetails,
       codAmount: order.paymentStatus === 'PENDING' ? order.total : 0

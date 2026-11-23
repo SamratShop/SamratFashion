@@ -37,6 +37,9 @@ export interface CreateShipmentParams {
     productName: string;
     quantity: number;
     unitPrice: number;
+    sku?: string;
+    selectedColor?: string;
+    selectedSize?: string;
   }>;
   packageDetails?: {
     weightGrams: number;

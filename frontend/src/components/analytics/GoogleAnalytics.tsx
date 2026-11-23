@@ -10,19 +10,35 @@ function AnalyticsNavigationTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (pathname) {
-      // Never leak public tracking bearer tokens to Google Analytics
-      const sanitizedPath = pathname.startsWith("/track/") ? "/track/[token]" : pathname;
-      const url = searchParams?.toString() ? `${sanitizedPath}?${searchParams.toString()}` : sanitizedPath;
-      trackPageView(url);
+    if (!pathname) return;
+
+    // Do not track admin routes to avoid polluting store metrics & staff tracking
+    if (pathname.startsWith("/admin")) {
+      if (typeof window !== "undefined" && GA_MEASUREMENT_ID) {
+        (window as any)[`ga-disable-${GA_MEASUREMENT_ID}`] = true;
+      }
+      return;
     }
+
+    // Re-enable tracking if navigating from admin back to storefront
+    if (typeof window !== "undefined" && GA_MEASUREMENT_ID) {
+      (window as any)[`ga-disable-${GA_MEASUREMENT_ID}`] = false;
+    }
+
+    // Never leak public tracking bearer tokens to Google Analytics
+    const sanitizedPath = pathname.startsWith("/track/") ? "/track/[token]" : pathname;
+    const url = searchParams?.toString() ? `${sanitizedPath}?${searchParams.toString()}` : sanitizedPath;
+    trackPageView(url);
   }, [pathname, searchParams]);
 
   return null;
 }
 
 export function GoogleAnalytics() {
-  if (!GA_MEASUREMENT_ID) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith("/admin");
+
+  if (!GA_MEASUREMENT_ID || isAdminRoute) {
     return (
       <Suspense fallback={null}>
         <AnalyticsNavigationTracker />
