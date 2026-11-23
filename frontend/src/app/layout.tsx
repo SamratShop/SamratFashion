@@ -100,9 +100,6 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "google73af5e0512a55317",
-    other: {
-      "strix-verification": "strix-verify-8912b31a41843d24ea7268a2dd1fafa5",
-    },
   },
   other: GEO_METADATA_OTHER,
 };
@@ -126,7 +123,6 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="strix-verification" content="strix-verify-8912b31a41843d24ea7268a2dd1fafa5" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
