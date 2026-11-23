@@ -358,13 +358,46 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       const res = await api.get(`/admin/orders/${orderId}/shipment/label`, {
         responseType: "blob",
       });
-      const blob = new Blob([res.data], { type: "application/pdf" });
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: "application/pdf" });
+      const contentType = (res.headers?.["content-type"] as string) || blob.type || "";
+      const isPdf = contentType.toLowerCase().includes("application/pdf") || blob.type.toLowerCase().includes("application/pdf");
+
+      if (!isPdf || blob.size === 0) {
+        let errMsg = "Failed to download shipping label.";
+        try {
+          const text = await blob.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) {
+            errMsg = parsed.message;
+          }
+        } catch {
+          // not JSON text
+        }
+        setActionError(errMsg);
+        return;
+      }
+
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
       setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setActionError(e.response?.data?.message || "Failed to download shipping label.");
+      let message = "Failed to download shipping label.";
+      try {
+        const e = err as { response?: { data?: unknown } };
+        const data = e.response?.data;
+        if (data instanceof Blob) {
+          const text = await data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) {
+            message = parsed.message;
+          }
+        } else if (typeof data === "object" && data !== null && "message" in data) {
+          message = (data as { message?: string }).message || message;
+        }
+      } catch {
+        // Fallback to default message
+      }
+      setActionError(message);
     }
   };
 
