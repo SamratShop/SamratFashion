@@ -2,17 +2,23 @@ import PDFDocument from 'pdfkit';
 import { IShipment } from '../models/Shipment';
 import { IOrder } from '../models/Order';
 
-export function generateShippingLabelPDFStream(shipment: IShipment, order: IOrder): PDFKit.PDFDocument {
-  const doc = new PDFDocument({ size: [288, 432], margin: 18 }); // 4x6 inch thermal shipping label size
-
+export function renderShippingLabelPDF(
+  doc: PDFKit.PDFDocument,
+  shipment: Partial<IShipment> | null | undefined,
+  order: Partial<IOrder> | null | undefined
+): void {
   // Header Box
   doc.rect(18, 18, 252, 40).fill('#004ac6');
   doc.fillColor('#FFFFFF').fontSize(14).font('Helvetica-Bold').text('SAMRAT FASHION EXPRESS', 24, 30);
 
   // AWB & Barcode representation
-  doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text(`AWB: ${shipment.awbNumber}`, 24, 68);
-  doc.fontSize(8).font('Helvetica').text(`CARRIER: ${shipment.carrier.toUpperCase()}`, 24, 82);
-  doc.fontSize(8).text(`ORDER NO: #${order.orderNumber}`, 24, 94);
+  const awb = shipment?.awbNumber || 'N/A';
+  const carrier = String(shipment?.carrier || '').toUpperCase();
+  const orderNumber = order?.orderNumber || 'N/A';
+
+  doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text(`AWB: ${awb}`, 24, 68);
+  doc.fontSize(8).font('Helvetica').text(`CARRIER: ${carrier}`, 24, 82);
+  doc.fontSize(8).text(`ORDER NO: #${orderNumber}`, 24, 94);
 
   // Draw simulated Barcode Box
   doc.rect(24, 108, 240, 36).fill('#E5E7EB');
@@ -22,23 +28,33 @@ export function generateShippingLabelPDFStream(shipment: IShipment, order: IOrde
   doc.moveTo(18, 154).lineTo(270, 154).strokeColor('#CCCCCC').stroke();
 
   // Ship To Address Box
+  const shippingAddress = order?.shippingAddress;
+  const fullName = shippingAddress?.fullName || 'N/A';
+  const addressLine1 = shippingAddress?.addressLine1 || 'N/A';
+  const addressLine2 = shippingAddress?.addressLine2 || '';
+  const city = shippingAddress?.city || 'N/A';
+  const state = shippingAddress?.state || 'N/A';
+  const postalCode = shippingAddress?.postalCode || 'N/A';
+  const phone = shippingAddress?.phone || 'N/A';
+  const alternatePhone = shippingAddress?.alternatePhone || '';
+
   doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text('SHIP TO:', 24, 164);
-  doc.fontSize(10).font('Helvetica-Bold').text(order.shippingAddress.fullName, 24, 178);
-  doc.fontSize(9).font('Helvetica').text(order.shippingAddress.addressLine1, 24, 192);
-  if (order.shippingAddress.addressLine2) {
-    doc.text(order.shippingAddress.addressLine2, 24, 204);
+  doc.fontSize(10).font('Helvetica-Bold').text(fullName, 24, 178);
+  doc.fontSize(9).font('Helvetica').text(addressLine1, 24, 192);
+  if (addressLine2) {
+    doc.text(addressLine2, 24, 204);
   }
-  doc.text(`${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.postalCode}`, 24, 218);
-  doc.text(`Phone: ${order.shippingAddress.phone}${order.shippingAddress.alternatePhone ? ` | Alt: ${order.shippingAddress.alternatePhone}` : ''}`, 24, 232);
+  doc.text(`${city}, ${state} - ${postalCode}`, 24, 218);
+  doc.text(`Phone: ${phone}${alternatePhone ? ` | Alt: ${alternatePhone}` : ''}`, 24, 232);
 
   // Line Divider
   doc.moveTo(18, 252).lineTo(270, 252).strokeColor('#CCCCCC').stroke();
 
   // Payment Badge (COD or PREPAID)
-  const isCod = order.paymentStatus === 'PENDING' && order.total > 0;
+  const isCod = order?.paymentStatus === 'PENDING' && (order?.total ?? 0) > 0;
   if (isCod) {
     doc.rect(24, 262, 240, 36).fill('#FFF7ED');
-    doc.fillColor('#C2410C').fontSize(12).font('Helvetica-Bold').text(`C.O.D. COLLECT: ₹${order.total}`, 34, 274);
+    doc.fillColor('#C2410C').fontSize(12).font('Helvetica-Bold').text(`C.O.D. COLLECT: ₹${order?.total ?? 0}`, 34, 274);
   } else {
     doc.rect(24, 262, 240, 36).fill('#ECFDF5');
     doc.fillColor('#047857').fontSize(12).font('Helvetica-Bold').text(`PREPAID - DO NOT COLLECT CASH`, 34, 274);
@@ -49,7 +65,28 @@ export function generateShippingLabelPDFStream(shipment: IShipment, order: IOrde
   doc.fillColor('#4B5563').fontSize(8).font('Helvetica-Bold').text('RETURN IF UNDELIVERED TO:', 24, 320);
   doc.fontSize(7).font('Helvetica').text('Samrat Fashion Logistics Center', 24, 332);
   doc.text('Plot 404, Industrial Fashion Park, MIDC, Mumbai, MH - 400001', 24, 342);
+}
 
+export function generateShippingLabelPDFStream(shipment: IShipment, order: IOrder): PDFKit.PDFDocument {
+  const doc = new PDFDocument({ size: [288, 432], margin: 18 }); // 4x6 inch thermal shipping label size
+  renderShippingLabelPDF(doc, shipment, order);
   doc.end();
   return doc;
+}
+
+export function generateShippingLabelPDFBuffer(shipment: IShipment, order: IOrder): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: [288, 432], margin: 18 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', (err) => reject(err));
+
+      renderShippingLabelPDF(doc, shipment, order);
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

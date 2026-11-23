@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import axios from 'axios';
 import { Order } from '../models/Order';
 import { Shipment } from '../models/Shipment';
 import { Fulfillment, FulfillmentStatus } from '../models/Fulfillment';
@@ -7,7 +8,7 @@ import { AuditLog } from '../models/AuditLog';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
 import { logisticsService } from '../services/logistics/logisticsService';
-import { generateShippingLabelPDFStream } from '../utils/pdfLabelGenerator';
+import { generateShippingLabelPDFBuffer } from '../utils/pdfLabelGenerator';
 
 interface AuthRequest extends Request {
   user?: {
@@ -239,29 +240,68 @@ export const getShippingLabel = catchAsync(async (req: Request, res: Response) =
     throw new AppError('Shipment not found', 404);
   }
 
-  // If provider is NimbusPost and has an official carrier PDF URL, redirect to official label
+  // If provider is NimbusPost and has an official carrier PDF URL, fetch and stream the PDF server-side instead of redirecting
   if (shipment.provider === 'nimbuspost') {
     try {
       const provider = logisticsService.getProvider('nimbuspost');
       const labelRes = await provider.generateLabel(shipment.awbNumber);
       if (labelRes?.labelUrl && labelRes.labelUrl.startsWith('http') && !labelRes.labelUrl.includes('/api/admin/orders/')) {
-        return res.redirect(labelRes.labelUrl);
+        const remoteRes = await axios.get<ArrayBuffer>(labelRes.labelUrl, {
+          responseType: 'arraybuffer',
+          timeout: 10000,
+          validateStatus: (status) => status === 200,
+        });
+
+        const contentType = (remoteRes.headers['content-type'] as string) || '';
+        const buffer = Buffer.from(remoteRes.data);
+        const isPdf = contentType.toLowerCase().includes('application/pdf') || buffer.subarray(0, 4).toString() === '%PDF';
+
+        if (!isPdf || buffer.length === 0) {
+          throw new Error(`Remote response was not a valid PDF (status: ${remoteRes.status}, contentType: ${contentType}, size: ${buffer.length})`);
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="Label-${shipment.awbNumber}.pdf"`);
+        res.setHeader('Content-Length', buffer.length);
+        return res.end(buffer);
       }
     } catch (e: unknown) {
-      console.warn('[Label] NimbusPost official label redirect failed, falling back to local PDF stream', e);
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.warn(
+        `[Label] NimbusPost official label fetch failed for orderId=${shipment.orderId}, awb=${shipment.awbNumber}, provider=${shipment.provider}: ${errMsg}. Falling back to local PDF generator.`
+      );
     }
   }
 
   const order = await Order.findById(shipment.orderId);
   if (!order) {
-    throw new AppError('Associated order not found', 404);
+    console.error(
+      `[Label] Associated order not found for shipping label: orderId=${shipment.orderId}, awb=${shipment.awbNumber}, provider=${shipment.provider}`
+    );
+    return res.status(404).json({
+      success: false,
+      message: 'Associated order not found',
+      code: 'ORDER_NOT_FOUND',
+    });
   }
 
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename="Label-${shipment.awbNumber}.pdf"`);
-
-  const pdfStream = generateShippingLabelPDFStream(shipment, order);
-  pdfStream.pipe(res);
+  try {
+    const pdfBuffer = await generateShippingLabelPDFBuffer(shipment, order);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Label-${shipment.awbNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.end(pdfBuffer);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[Label] Failed to generate local PDF label: orderId=${shipment.orderId}, awb=${shipment.awbNumber}, provider=${shipment.provider}, hasCarrier=${Boolean(shipment.carrier)}, error=${errMsg}`
+    );
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate shipping label',
+      code: 'LABEL_GENERATION_FAILED',
+    });
+  }
 });
 
 /**
