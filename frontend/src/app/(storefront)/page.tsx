@@ -33,6 +33,11 @@ export const metadata: Metadata = {
       "Shop tailored Indian menswear, classic 4-pocket Nehru jackets, and coti for festive & formal dressing. Express Pan-India delivery & secure Razorpay checkout.",
     url: "/",
   },
+  verification: {
+    other: {
+      "strix-verification": "strix-verify-8912b31a41843d24ea7268a2dd1fafa5",
+    },
+  },
 };
 interface MemStore<T> {
   data: T;
