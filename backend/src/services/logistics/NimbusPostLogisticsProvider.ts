@@ -22,9 +22,9 @@ import { Shipment } from '../../models/Shipment';
 import { AppError } from '../../utils/AppError';
 
 /**
- * Shortens a product name to fit the label without cutting words mid-word.
- * E.g. 'Classic Mandarin Collar Nehru Jacket' -> 'Nehru Jacket' (when marketing prefixes stripped)
- * or 'Classic Mandarin' (when truncated cleanly at a word boundary).
+ * Shortens a product name to fit the label without cutting words mid-word,
+ * ensuring the core product type (last words, e.g. 'Nehru Jacket', 'Modi Jacket') is preserved.
+ * Generic leading words/marketing prefixes are dropped first.
  */
 export function shortenProductName(productName: string, maxLen: number): string {
   if (!productName) return '';
@@ -35,30 +35,41 @@ export function shortenProductName(productName: string, maxLen: number): string 
   const commonPrefixes = [
     /^(Classic\s+Mandarin\s+Collar\s+)/i,
     /^(Mandarin\s+Collar\s+)/i,
+    /^(4\s*-?\s*Pocket\s+Safari\s+Style\s+)/i,
+    /^(Safari\s+Style\s+)/i,
+    /^(4\s*-?\s*Pocket\s+)/i,
     /^(ThreadVibe\s+Heavyweight\s+)/i,
     /^(ThreadVibe\s+)/i,
     /^(Classic\s+Unisex\s+)/i,
     /^(Heavyweight\s+)/i,
     /^(Premium\s+)/i,
+    /^(Textured\s+)/i,
     /^(Classic\s+)/i,
+    /^(Unisex\s+)/i,
   ];
 
-  for (const regex of commonPrefixes) {
-    const stripped = trimmed.replace(regex, '').trim();
-    if (stripped.length > 0 && stripped.length <= maxLen) {
-      return stripped;
+  let current = trimmed;
+  while (true) {
+    let matched = false;
+    for (const regex of commonPrefixes) {
+      if (regex.test(current)) {
+        const next = current.replace(regex, '').trim();
+        if (next.length > 0) {
+          current = next;
+          matched = true;
+          break;
+        }
+      }
     }
+    if (!matched) break;
   }
 
-  // Word-boundary truncation from start
-  const sub = trimmed.slice(0, maxLen);
-  const lastSpace = sub.lastIndexOf(' ');
-  if (lastSpace > 3) {
-    return sub.slice(0, lastSpace).trim();
+  if (current.length <= maxLen) {
+    return current;
   }
 
-  // If no good space boundary found, take the last words if they fit
-  const words = trimmed.split(/\s+/);
+  // Truncate cleanly at word boundaries from the end, keeping the product type (last words)
+  const words = current.split(/\s+/);
   if (words.length > 1) {
     let acc = '';
     for (let i = words.length - 1; i >= 0; i--) {
@@ -72,13 +83,14 @@ export function shortenProductName(productName: string, maxLen: number): string 
     if (acc) return acc;
   }
 
-  return sub.trim();
+  // If even the last word exceeds maxLen, or single word, slice to maxLen
+  return current.slice(0, maxLen).trim();
 }
 
 /**
  * Derives a short label item name containing the variant (Colour / Size).
  * Total length is kept within ~35 characters to avoid mid-word truncation on courier labels.
- * E.g. 'Classic Mandarin Collar Nehru Jacket', 'Navy Blue', 'XL' -> 'Nehru Jacket - Navy Blue / XL'
+ * E.g. 'Classic Mandarin Collar Textured Nehru Jacket', 'Navy Blue', 'XL' -> 'Nehru Jacket - Navy Blue / XL'
  */
 export function formatLabelItemName(
   productName: string,

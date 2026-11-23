@@ -103,7 +103,7 @@ async function runTests(): Promise<void> {
     },
     items: [
       {
-        productName: 'Classic Mandarin Collar Nehru Jacket',
+        productName: 'Classic Mandarin Collar Textured Nehru Jacket',
         sku: 'CLASSICM-NAV-XL',
         selectedColor: 'Navy Blue',
         selectedSize: 'XL',
@@ -141,6 +141,39 @@ async function runTests(): Promise<void> {
     (capturedPayload as any)?.warehouse_id === 'WH-TEST-001',
     '1.6 Payload sends only warehouse_id (no injected warehouse address string)',
     `got: ${(capturedPayload as any)?.warehouse_id}`
+  );
+
+  const testParamsModi: CreateShipmentParams = {
+    orderId: '60d5ec49f1b2c8b1f8e4e1a3',
+    orderNumber: 'SF-2026-468854',
+    recipient: {
+      fullName: 'Vikram Singh',
+      phone: '+91 91234 56789',
+      addressLine1: 'Civil Lines',
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
+      postalCode: '208001',
+      country: 'India'
+    },
+    items: [
+      {
+        productName: 'Classic 4-Pocket Safari Style Modi Jacket',
+        sku: 'CLASSIC-MODI-GRY-M',
+        selectedColor: 'Steel Grey',
+        selectedSize: 'M',
+        quantity: 1,
+        unitPrice: 400
+      }
+    ],
+    codAmount: 0
+  };
+
+  await provider.createShipment(testParamsModi);
+
+  check(
+    (capturedPayload as any)?.items?.[0]?.name === 'Modi Jacket - Steel Grey / M',
+    '1.7 Payload items[0].name for Modi Jacket derived cleanly without mid-word truncation',
+    `got: ${(capturedPayload as any)?.items?.[0]?.name}`
   );
 
   // -------------------------------------------------------------------------
@@ -215,7 +248,7 @@ async function runTests(): Promise<void> {
     },
     items: [
       {
-        productName: 'Classic Mandarin Collar Nehru Jacket',
+        productName: 'Classic Mandarin Collar Textured Nehru Jacket',
         sku: 'CLASSICM-NAV-XL',
         selectedColor: 'Navy Blue',
         selectedSize: 'XL',
@@ -278,21 +311,24 @@ async function runTests(): Promise<void> {
   // -------------------------------------------------------------------------
   console.log('\n[TEST GROUP 5: LABEL ITEM NAME FORMATTING]');
 
-  const short1 = shortenProductName('Classic Mandarin Collar Nehru Jacket', 20);
+  const short1 = shortenProductName('Classic Mandarin Collar Textured Nehru Jacket', 20);
   check(short1 === 'Nehru Jacket', '5.0 shortenProductName strips prefix within length limit', `got: ${short1}`);
 
-  const name1 = formatLabelItemName('Classic Mandarin Collar Nehru Jacket', 'Navy Blue', 'XL', 35);
+  const name1 = formatLabelItemName('Classic Mandarin Collar Textured Nehru Jacket', 'Navy Blue', 'XL', 35);
   check(name1 === 'Nehru Jacket - Navy Blue / XL', '5.1 Strips marketing prefix to yield "Nehru Jacket - Navy Blue / XL"', `got: ${name1}`);
 
+  const nameModi = formatLabelItemName('Classic 4-Pocket Safari Style Modi Jacket', 'Steel Grey', 'M', 35);
+  check(nameModi === 'Modi Jacket - Steel Grey / M', '5.2 Strips safari/pocket prefix to yield "Modi Jacket - Steel Grey / M"', `got: ${nameModi}`);
+
   const name2 = formatLabelItemName('ThreadVibe Heavyweight Oversized Tee', 'Black', 'L', 35);
-  check(name2 === 'Oversized Tee - Black / L', '5.2 Strips ThreadVibe Heavyweight prefix', `got: ${name2}`);
+  check(name2 === 'Oversized Tee - Black / L', '5.3 Strips ThreadVibe Heavyweight prefix', `got: ${name2}`);
 
   const name3 = formatLabelItemName('Classic Unisex Crewneck T-Shirt', 'White', 'M', 35);
-  check(name3 === 'Crewneck T-Shirt - White / M', '5.3 Strips Classic Unisex prefix', `got: ${name3}`);
+  check(name3 === 'Crewneck T-Shirt - White / M', '5.4 Strips Classic Unisex prefix', `got: ${name3}`);
 
   const name4 = formatLabelItemName('Very Long Custom Fashion Garment Designed For Men In Winter Seasons', 'Red', 'S', 35);
-  check(name4.length <= 35, '5.4 Enforces max length <= 35 characters for very long product names', `len: ${name4.length}, got: ${name4}`);
-  check(!name4.endsWith(' '), '5.5 Does not leave trailing space before suffix');
+  check(name4.length <= 35, '5.5 Enforces max length <= 35 characters for very long product names', `len: ${name4.length}, got: ${name4}`);
+  check(!name4.endsWith(' '), '5.6 Does not leave trailing space before suffix');
 
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) {
