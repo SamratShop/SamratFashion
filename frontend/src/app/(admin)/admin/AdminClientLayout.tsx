@@ -21,8 +21,37 @@ export default function AdminClientLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [permissions, setPermissions] = useState<AdminPermissionsData | null>(null);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Reset navigation indicator on route change
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
+
+  // Instant feedback on link click: shows top progress loader immediately
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement)?.closest("a");
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (
+        href &&
+        href.startsWith("/admin") &&
+        href !== pathname &&
+        !target.target &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.shiftKey
+      ) {
+        setIsNavigating(true);
+      }
+    };
+
+    window.addEventListener("click", handleDocumentClick);
+    return () => window.removeEventListener("click", handleDocumentClick);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -120,6 +149,17 @@ export default function AdminClientLayout({
   return (
     <ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]}>
       <div className="bg-background text-on-background font-body-md text-body-md min-h-screen flex w-full overflow-x-hidden">
+        {/* Instant Route Navigation Loading Bar */}
+        {isNavigating && (
+          <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-primary/20 overflow-hidden pointer-events-none">
+            <div className="h-full bg-primary w-2/5 animate-shimmer" />
+            <div className="absolute top-2.5 right-4 bg-primary text-on-primary px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold shadow-md flex items-center gap-1.5 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Loading...</span>
+            </div>
+          </div>
+        )}
+
         {/* SideNavBar */}
         <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 

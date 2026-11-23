@@ -166,6 +166,10 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusLoading, setStatusLoading] = useState(false);
+  const [operationAction, setOperationAction] = useState<string | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [downloadingPackingSlip, setDownloadingPackingSlip] = useState(false);
+  const [downloadingLabel, setDownloadingLabel] = useState(false);
   const [actionError, setActionError] = useState("");
 
   const [refunds, setRefunds] = useState<any[]>([]);
@@ -325,6 +329,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
   }, [fetchOrder]);
 
   const handleStatusChange = async (newStatus: string) => {
+    setOperationAction(`status_${newStatus}`);
     setStatusLoading(true);
     setActionError("");
     try {
@@ -334,12 +339,14 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to update status");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
   const handleCancelOrder = async () => {
     const reasonPrompt = window.prompt("Are you sure you want to cancel this order? Enter optional cancellation reason:", "Cancelled by admin");
     if (reasonPrompt === null) return;
+    setOperationAction("cancel_order");
     setStatusLoading(true);
     setActionError("");
     try {
@@ -351,6 +358,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to cancel order");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
@@ -405,6 +413,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
 
   // Warehouse Fulfillment Actions
   const handlePickFulfillment = async () => {
+    setOperationAction("pick");
     setStatusLoading(true);
     setActionError("");
     try {
@@ -414,10 +423,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to confirm item picking");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
   const handlePackFulfillment = async () => {
+    setOperationAction("pack");
     setStatusLoading(true);
     setActionError("");
     try {
@@ -429,10 +440,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to confirm packing");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
   const handleQCFulfillment = async (qcStatus: "PASSED" | "FAILED") => {
+    setOperationAction(qcStatus === "PASSED" ? "qc_pass" : "qc_fail");
     setStatusLoading(true);
     setActionError("");
     try {
@@ -445,10 +458,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to update Quality Check status");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
   const handleReadyToShipFulfillment = async () => {
+    setOperationAction("ready_to_ship");
     setStatusLoading(true);
     setActionError("");
     try {
@@ -458,10 +473,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setActionError(err.response?.data?.message || "Failed to mark Ready to Ship");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
 
   const handleDownloadPackingSlip = async () => {
+    setDownloadingPackingSlip(true);
     try {
       const res = await api.get(`/admin/orders/${orderId}/fulfillment/packing-slip`, {
         responseType: "blob",
@@ -473,10 +490,13 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setActionError(e.response?.data?.message || "Failed to download packing slip.");
+    } finally {
+      setDownloadingPackingSlip(false);
     }
   };
 
   const handleDownloadShippingLabel = async () => {
+    setDownloadingLabel(true);
     try {
       const res = await api.get(`/admin/orders/${orderId}/shipment/label`, {
         responseType: "blob",
@@ -521,6 +541,8 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
         // Fallback to default message
       }
       setActionError(message);
+    } finally {
+      setDownloadingLabel(false);
     }
   };
 
@@ -588,6 +610,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
     const reason = window.prompt("Enter Reason for Refund (e.g. Partial Return, Customer Compensation):", "Partial Refund");
     if (!reason) return;
 
+    setOperationAction("refund");
     setStatusLoading(true);
     try {
       await api.post(`/admin/orders/${orderId}/refund`, { amount, reason });
@@ -598,6 +621,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       alert(e.response?.data?.message || "Failed to process refund");
     } finally {
       setStatusLoading(false);
+      setOperationAction(null);
     }
   };
   if (loading) return <div className="p-8 text-center text-on-surface-variant">Loading order details...</div>;
@@ -641,7 +665,20 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
     : [];
 
   return (
-    <div className="flex flex-col gap-element-gap md:gap-gutter pb-16">
+    <div className="flex flex-col gap-element-gap md:gap-gutter pb-16 relative">
+      {/* Active Operation Progress Bar Indicator */}
+      {(statusLoading || downloadingInvoice || downloadingPackingSlip || downloadingLabel || shipmentAction !== null) && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className="h-1 bg-primary/20 overflow-hidden">
+            <div className="h-full bg-primary w-2/5 animate-shimmer" />
+          </div>
+          <div className="absolute top-2 right-4 bg-primary text-on-primary px-3 py-1 rounded-full text-xs font-mono font-bold shadow-lg flex items-center gap-2 animate-bounce">
+            <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+            <span>Processing Operation...</span>
+          </div>
+        </div>
+      )}
+
       {/* Back Button */}
       <div>
         <Link href="/admin/orders" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label-caps text-[12px]">
@@ -683,12 +720,22 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
           {/* Routine Document Actions */}
           <button
             type="button"
-            onClick={() => downloadOrViewInvoicePdf(order._id, `Invoice-${order.orderNumber}.pdf`)}
-            className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+            onClick={async () => {
+              setDownloadingInvoice(true);
+              try {
+                await downloadOrViewInvoicePdf(order._id, `Invoice-${order.orderNumber}.pdf`);
+              } finally {
+                setDownloadingInvoice(false);
+              }
+            }}
+            disabled={downloadingInvoice}
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-60"
             title="Download Tax Invoice PDF"
           >
-            <span className="material-symbols-outlined text-[18px]">download</span>
-            <span>Tax Invoice</span>
+            <span className={`material-symbols-outlined text-[18px] ${downloadingInvoice ? "animate-spin text-primary" : ""}`}>
+              {downloadingInvoice ? "sync" : "download"}
+            </span>
+            <span>{downloadingInvoice ? "Generating..." : "Tax Invoice"}</span>
           </button>
 
           {/* Routine Workflow Progress Actions */}
@@ -696,9 +743,16 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
             <button 
               onClick={() => handleStatusChange('PROCESSING')}
               disabled={statusLoading}
-              className="flex-1 sm:flex-none justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-60 cursor-pointer"
             >
-              <span>Move to Processing</span>
+              {operationAction === "status_PROCESSING" ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                  <span>Moving to Processing...</span>
+                </>
+              ) : (
+                <span>Move to Processing</span>
+              )}
             </button>
           )}
           {order.status === 'PROCESSING' && (
@@ -709,7 +763,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 setShipmentModalError("");
               }}
               disabled={statusLoading}
-              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-60"
             >
               <span className="material-symbols-outlined text-[18px]">local_shipping</span>
               <span>Manual Dispatch (Offline)</span>
@@ -719,6 +773,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
             <button 
               onClick={async () => {
                 if (!confirm("Confirm delivery?")) return;
+                setOperationAction("mark_delivered");
                 setStatusLoading(true);
                 try {
                   await api.patch(`/admin/orders/${orderId}/shipment`, { status: 'DELIVERED' });
@@ -727,13 +782,16 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   alert(err.response?.data?.message || 'Failed to update delivery');
                 } finally {
                   setStatusLoading(false);
+                  setOperationAction(null);
                 }
               }}
               disabled={statusLoading}
-              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-50 shadow-xs cursor-pointer"
+              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-on-primary rounded-lg font-mono text-xs uppercase font-bold hover:opacity-90 transition-opacity flex items-center gap-2 min-h-[40px] disabled:opacity-60 shadow-xs cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">check_circle</span>
-              <span>Mark Delivered</span>
+              <span className={`material-symbols-outlined text-[18px] ${operationAction === "mark_delivered" ? "animate-spin" : ""}`}>
+                {operationAction === "mark_delivered" ? "sync" : "check_circle"}
+              </span>
+              <span>{operationAction === "mark_delivered" ? "Marking Delivered..." : "Mark Delivered"}</span>
             </button>
           )}
 
@@ -749,11 +807,13 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 type="button"
                 onClick={handleIssueRefund}
                 disabled={statusLoading}
-                className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded-lg font-mono text-xs uppercase font-bold hover:bg-amber-500/20 transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-50"
+                className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded-lg font-mono text-xs uppercase font-bold hover:bg-amber-500/20 transition-colors flex items-center gap-1.5 min-h-[40px] cursor-pointer disabled:opacity-60"
                 title="Initiate refund via payment gateway"
               >
-                <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">currency_rupee</span>
-                <span>Issue Refund</span>
+                <span className={`material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 ${operationAction === "refund" ? "animate-spin" : ""}`}>
+                  {operationAction === "refund" ? "sync" : "currency_rupee"}
+                </span>
+                <span>{operationAction === "refund" ? "Processing Refund..." : "Issue Refund"}</span>
               </button>
             )}
             {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (
@@ -762,7 +822,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   type="button"
                   onClick={() => handleOpenCancelItemsModal()}
                   disabled={statusLoading}
-                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/10 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/20 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50 cursor-pointer"
+                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/10 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/20 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-60 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px]">remove_shopping_cart</span>
                   <span>Cancel Items</span>
@@ -770,10 +830,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 <button 
                   onClick={handleCancelOrder}
                   disabled={statusLoading}
-                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/20 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/30 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-50"
+                  className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-error-container/20 text-error border border-error/20 rounded-lg font-mono text-xs uppercase font-bold hover:bg-error-container/30 transition-colors flex items-center gap-1.5 min-h-[40px] disabled:opacity-60 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px]">cancel</span>
-                  <span>Cancel Order</span>
+                  <span className={`material-symbols-outlined text-[18px] ${operationAction === "cancel_order" ? "animate-spin" : ""}`}>
+                    {operationAction === "cancel_order" ? "sync" : "cancel"}
+                  </span>
+                  <span>{operationAction === "cancel_order" ? "Cancelling..." : "Cancel Order"}</span>
                 </button>
               </>
             )}
@@ -948,11 +1010,14 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   <button
                     type="button"
                     onClick={handleDownloadPackingSlip}
-                    className="px-3.5 py-2 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px] shadow-2xs"
+                    disabled={downloadingPackingSlip}
+                    className="px-3.5 py-2 bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center gap-1.5 cursor-pointer min-h-[38px] shadow-2xs disabled:opacity-60"
                     title="Download Warehouse Packing Slip PDF"
                   >
-                    <span className="material-symbols-outlined text-[16px]">description</span>
-                    <span>Packing Slip PDF</span>
+                    <span className={`material-symbols-outlined text-[16px] ${downloadingPackingSlip ? "animate-spin text-primary" : ""}`}>
+                      {downloadingPackingSlip ? "sync" : "description"}
+                    </span>
+                    <span>{downloadingPackingSlip ? "Generating..." : "Packing Slip PDF"}</span>
                   </button>
                 </div>
               </div>
@@ -962,10 +1027,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   <button
                     onClick={handlePickFulfillment}
                     disabled={statusLoading}
-                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[16px]">inventory_2</span>
-                    1. Pick Items
+                    <span className={`material-symbols-outlined text-[16px] ${operationAction === "pick" ? "animate-spin" : ""}`}>
+                      {operationAction === "pick" ? "sync" : "inventory_2"}
+                    </span>
+                    <span>{operationAction === "pick" ? "Picking Items..." : "1. Pick Items"}</span>
                   </button>
                 )}
 
@@ -973,10 +1040,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   <button
                     onClick={handlePackFulfillment}
                     disabled={statusLoading}
-                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[16px]">package_2</span>
-                    2. Confirm Packing
+                    <span className={`material-symbols-outlined text-[16px] ${operationAction === "pack" ? "animate-spin" : ""}`}>
+                      {operationAction === "pack" ? "sync" : "package_2"}
+                    </span>
+                    <span>{operationAction === "pack" ? "Packing Package..." : "2. Confirm Packing"}</span>
                   </button>
                 )}
 
@@ -985,18 +1054,22 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                     <button
                       onClick={() => handleQCFulfillment("PASSED")}
                       disabled={statusLoading}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-label-caps text-xs hover:bg-green-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-label-caps text-xs hover:bg-green-700 transition-colors flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[16px]">verified</span>
-                      3. QC Pass
+                      <span className={`material-symbols-outlined text-[16px] ${operationAction === "qc_pass" ? "animate-spin" : ""}`}>
+                        {operationAction === "qc_pass" ? "sync" : "verified"}
+                      </span>
+                      <span>{operationAction === "qc_pass" ? "Verifying QC Pass..." : "3. QC Pass"}</span>
                     </button>
                     <button
                       onClick={() => handleQCFulfillment("FAILED")}
                       disabled={statusLoading}
-                      className="px-4 py-2 bg-error-container/20 text-error border border-error/20 rounded-lg font-label-caps text-xs hover:bg-error-container/30 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-4 py-2 bg-error-container/20 text-error border border-error/20 rounded-lg font-label-caps text-xs hover:bg-error-container/30 transition-colors flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[16px]">dangerous</span>
-                      3. QC Fail
+                      <span className={`material-symbols-outlined text-[16px] ${operationAction === "qc_fail" ? "animate-spin" : ""}`}>
+                        {operationAction === "qc_fail" ? "sync" : "dangerous"}
+                      </span>
+                      <span>{operationAction === "qc_fail" ? "Failing QC..." : "3. QC Fail"}</span>
                     </button>
                   </>
                 )}
@@ -1005,10 +1078,12 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   <button
                     onClick={handleReadyToShipFulfillment}
                     disabled={statusLoading}
-                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[16px]">local_shipping</span>
-                    4. Mark Ready to Ship
+                    <span className={`material-symbols-outlined text-[16px] ${operationAction === "ready_to_ship" ? "animate-spin" : ""}`}>
+                      {operationAction === "ready_to_ship" ? "sync" : "local_shipping"}
+                    </span>
+                    <span>{operationAction === "ready_to_ship" ? "Marking Ready..." : "4. Mark Ready to Ship"}</span>
                   </button>
                 )}
 
@@ -1277,10 +1352,15 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                   <button
                     type="button"
                     onClick={handleDownloadShippingLabel}
-                    className="flex-1 min-h-[40px] px-3.5 py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    disabled={downloadingLabel}
+                    className="flex-1 min-h-[40px] px-3.5 py-2 bg-surface-bright border border-outline-variant/30 text-on-surface rounded-lg font-mono text-xs uppercase font-bold hover:bg-surface-container transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[18px]">label</span>
-                    <span className="whitespace-nowrap">Print Shipping Label (4x6)</span>
+                    <span className={`material-symbols-outlined text-[18px] ${downloadingLabel ? "animate-spin text-primary" : ""}`}>
+                      {downloadingLabel ? "sync" : "label"}
+                    </span>
+                    <span className="whitespace-nowrap">
+                      {downloadingLabel ? "Downloading Label..." : "Print Shipping Label (4x6)"}
+                    </span>
                   </button>
 
                   {shipmentProviderIsIntegrated && shipment.status !== "CANCELLED" && (
@@ -2196,7 +2276,14 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                 disabled={cancelItemsLoading}
                 className="px-5 py-2 bg-error-container/20 text-error border border-error/30 hover:bg-error-container/30 font-mono text-xs uppercase font-bold tracking-wider rounded-lg transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
-                {cancelItemsLoading ? "Processing..." : "Confirm Item Cancellation"}
+                {cancelItemsLoading ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    <span>Cancelling Items...</span>
+                  </>
+                ) : (
+                  <span>Confirm Item Cancellation</span>
+                )}
               </button>
             </div>
           </div>

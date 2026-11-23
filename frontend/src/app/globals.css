@@ -248,6 +248,19 @@
   .animate-marquee {
     animation: marquee 30s linear infinite;
   }
+
+  /* Admin Top Loader Shimmer Animation */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(250%);
+    }
+  }
+  .animate-shimmer {
+    animation: shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
   /* Prefers Reduced Motion Global Enforcement */
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
