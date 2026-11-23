@@ -64,6 +64,9 @@ export function trackEvent(eventName: string, params?: Record<string, any>): voi
   try {
     if (typeof window === "undefined") return;
 
+    // Do not track events on admin routes
+    if (window.location.pathname.startsWith("/admin")) return;
+
     // Filter PII and sensitive parameters
     const safeParams = sanitizeAnalyticsParams(params);
 
