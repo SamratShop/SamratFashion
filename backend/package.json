@@ -51,6 +51,7 @@
     "test:dashboard-metrics": "tsc && node dist/tests/admin-dashboard-metrics.test.js",
     "test:log-cleanup": "tsc && node dist/tests/log-cleanup.test.js",
     "test:alternate-phone": "tsc && node dist/tests/alternate-phone.test.js",
+    "test:shipping-label": "tsc && node dist/tests/shipping-label-variant-sku.test.js",
     "test:pin": "tsc && node dist/tests/indian-pin-validation.test.js",
     "test:shareable-tracking": "tsc && node dist/tests/secure-shareable-tracking.test.js",
     "test:tracking-http": "tsc && node dist/tests/tracking-http-integration.test.js",

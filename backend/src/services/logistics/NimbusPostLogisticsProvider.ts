@@ -21,6 +21,83 @@ import { nimbusPostClient, NimbusPostServiceabilityRequest, NimbusPostCreateShip
 import { Shipment } from '../../models/Shipment';
 import { AppError } from '../../utils/AppError';
 
+/**
+ * Shortens a product name to fit the label without cutting words mid-word.
+ * E.g. 'Classic Mandarin Collar Nehru Jacket' -> 'Nehru Jacket' (when marketing prefixes stripped)
+ * or 'Classic Mandarin' (when truncated cleanly at a word boundary).
+ */
+export function shortenProductName(productName: string, maxLen: number): string {
+  if (!productName) return '';
+  const trimmed = productName.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+
+  // Try removing leading marketing/modifier prefixes if present
+  const commonPrefixes = [
+    /^(Classic\s+Mandarin\s+Collar\s+)/i,
+    /^(Mandarin\s+Collar\s+)/i,
+    /^(ThreadVibe\s+Heavyweight\s+)/i,
+    /^(ThreadVibe\s+)/i,
+    /^(Classic\s+Unisex\s+)/i,
+    /^(Heavyweight\s+)/i,
+    /^(Premium\s+)/i,
+    /^(Classic\s+)/i,
+  ];
+
+  for (const regex of commonPrefixes) {
+    const stripped = trimmed.replace(regex, '').trim();
+    if (stripped.length > 0 && stripped.length <= maxLen) {
+      return stripped;
+    }
+  }
+
+  // Word-boundary truncation from start
+  const sub = trimmed.slice(0, maxLen);
+  const lastSpace = sub.lastIndexOf(' ');
+  if (lastSpace > 3) {
+    return sub.slice(0, lastSpace).trim();
+  }
+
+  // If no good space boundary found, take the last words if they fit
+  const words = trimmed.split(/\s+/);
+  if (words.length > 1) {
+    let acc = '';
+    for (let i = words.length - 1; i >= 0; i--) {
+      const candidate = acc ? `${words[i]} ${acc}` : words[i];
+      if (candidate.length <= maxLen) {
+        acc = candidate;
+      } else {
+        break;
+      }
+    }
+    if (acc) return acc;
+  }
+
+  return sub.trim();
+}
+
+/**
+ * Derives a short label item name containing the variant (Colour / Size).
+ * Total length is kept within ~35 characters to avoid mid-word truncation on courier labels.
+ * E.g. 'Classic Mandarin Collar Nehru Jacket', 'Navy Blue', 'XL' -> 'Nehru Jacket - Navy Blue / XL'
+ */
+export function formatLabelItemName(
+  productName: string,
+  selectedColor?: string,
+  selectedSize?: string,
+  maxTotalLen: number = 35
+): string {
+  const parts: string[] = [];
+  if (selectedColor && selectedColor.trim()) parts.push(selectedColor.trim());
+  if (selectedSize && selectedSize.trim()) parts.push(selectedSize.trim());
+
+  const variantSuffix = parts.length > 0 ? ` - ${parts.join(' / ')}` : '';
+  const availableLen = maxTotalLen - variantSuffix.length;
+  const effectiveMaxLen = Math.max(availableLen, 10);
+  const shortName = shortenProductName(productName, effectiveMaxLen);
+
+  return variantSuffix ? `${shortName}${variantSuffix}` : shortName;
+}
+
 export class NimbusPostLogisticsProvider implements IMultiCourierProvider, ILogisticsProvider {
   public name = 'nimbuspost';
 
@@ -365,7 +442,17 @@ export class NimbusPostLogisticsProvider implements IMultiCourierProvider, ILogi
     // NimbusPost V2 POST /v2/shipments dead weight must be in kilograms (e.g. 0.5 for 500g)
     const weightKg = Math.max(0.05, Math.round((weightGrams / 1000) * 1000) / 1000);
 
-    const cleanPhone = Number(String(params.recipient.phone).replace(/\D/g, '')) || 9999999999;
+    // Normalize 10-digit Indian phone (stripping +91, 91, or leading 0 if present)
+    const rawDigits = String(params.recipient.phone || '').replace(/\D/g, '');
+    const cleanPhone = rawDigits.length === 10
+      ? Number(rawDigits)
+      : rawDigits.length === 12 && rawDigits.startsWith('91')
+        ? Number(rawDigits.slice(2))
+        : rawDigits.length === 11 && rawDigits.startsWith('0')
+          ? Number(rawDigits.slice(1))
+          : rawDigits.length >= 10
+            ? Number(rawDigits.slice(-10))
+            : 9999999999;
     const cleanPincode = Number(String(params.recipient.postalCode).replace(/\D/g, '')) || 110001;
 
     const warehouseId = await nimbusPostClient.getPrimaryWarehouseId();
@@ -385,12 +472,18 @@ export class NimbusPostLogisticsProvider implements IMultiCourierProvider, ILogi
         pincode: cleanPincode,
         country: params.recipient.country || 'India'
       },
-      items: params.items.map(item => ({
-        name: item.productName,
-        qty: item.quantity,
-        price: item.unitPrice,
-        tax_rate: 0
-      })),
+      items: params.items.map(item => {
+        const itemPayload: NimbusPostCreateShipmentRequest['items'][number] = {
+          name: formatLabelItemName(item.productName, item.selectedColor, item.selectedSize),
+          qty: item.quantity,
+          price: item.unitPrice,
+          tax_rate: 0
+        };
+        if (item.sku && item.sku.trim()) {
+          itemPayload.sku = item.sku.trim();
+        }
+        return itemPayload;
+      }),
       package: {
         weight: weightKg,
         length: lengthCm,
