@@ -28,6 +28,7 @@ export default async function ProductLayout({
 
   return (
     <>
+      {children}
       <JsonLd
         id="product-jsonld"
         data={getProductJsonLd({
@@ -59,7 +60,6 @@ export default async function ProductLayout({
         id="product-faq-jsonld"
         data={getFaqPageJsonLd(getProductFaqs(product))}
       />
-      {children}
     </>
   );
 }

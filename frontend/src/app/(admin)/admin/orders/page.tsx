@@ -803,8 +803,16 @@ export default function AdminOrdersList() {
               return (
                 <div
                   key={order._id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => router.push(`/admin/orders/${order._id}`)}
-                  className="bg-surface border border-outline-variant/30 rounded-xl p-3.5 space-y-2.5 shadow-2xs cursor-pointer hover:border-primary transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/admin/orders/${order._id}`);
+                    }
+                  }}
+                  className="bg-surface border border-outline-variant/30 rounded-xl p-3.5 space-y-2.5 shadow-2xs cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs font-bold text-primary">#{order.orderNumber}</span>
@@ -935,10 +943,21 @@ export default function AdminOrdersList() {
                   return (
                     <tr
                       key={order._id}
+                      tabIndex={0}
                       onClick={() => router.push(`/admin/orders/${order._id}`)}
-                      className="hover:bg-surface-container-low transition-colors cursor-pointer group border-b border-outline-variant/10"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/admin/orders/${order._id}`);
+                        }
+                      }}
+                      className="hover:bg-surface-container-low transition-colors cursor-pointer group border-b border-outline-variant/10 focus:outline-none focus:bg-surface-container-low focus:ring-2 focus:ring-inset focus:ring-primary"
                     >
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="py-3 px-4"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedOrderIds.includes(order._id)}

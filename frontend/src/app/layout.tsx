@@ -142,12 +142,12 @@ export default async function RootLayout({
         >
           Skip to main content
         </a>
-        <JsonLd id="org-jsonld" data={getOrganizationJsonLd()} />
-        <JsonLd id="website-jsonld" data={getWebSiteJsonLd()} />
-        <GoogleAnalytics />
         <StoreSettingsProvider initialSettings={storeSettings}>
           <AuthProvider>{children}</AuthProvider>
         </StoreSettingsProvider>
+        <JsonLd id="org-jsonld" data={getOrganizationJsonLd()} />
+        <JsonLd id="website-jsonld" data={getWebSiteJsonLd()} />
+        <GoogleAnalytics />
       </body>
     </html>
   );

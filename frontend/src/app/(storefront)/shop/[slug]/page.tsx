@@ -86,14 +86,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const color = typeof resolvedSearchParams.color === "string" ? resolvedSearchParams.color : "";
   const product = await getProductBySlug(slug);
 
   if (!product) {
@@ -118,9 +114,7 @@ export async function generateMetadata({
     `Buy ${product.name} at Samrat Fashion India. Tailored Indian menswear crafted for festive and formal occasions with express Pan-India shipping and secure Razorpay checkout.`;
 
   const primaryImage = product.images?.[0] || `${SITE_URL}/og-image.jpg`;
-  const canonicalPath = color
-    ? `/shop/${product.slug}?color=${encodeURIComponent(color)}`
-    : `/shop/${product.slug}`;
+  const canonicalPath = `/shop/${product.slug}`;
 
   return {
     title: cleanTitle,
@@ -160,13 +154,10 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedParams = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
 
   const [product, recData] = await Promise.all([
     getProductBySlug(resolvedParams.slug),
@@ -177,18 +168,10 @@ export default async function ProductPage({
     notFound();
   }
 
-  const colorParam = resolvedSearchParams.color;
-  const initialSelectedColor = typeof colorParam === "string" ? colorParam : undefined;
-
-  const sizeParam = resolvedSearchParams.size;
-  const initialSelectedSize = typeof sizeParam === "string" ? sizeParam : undefined;
-
   return (
     <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-20 lg:pb-12 outline-none">
       <PDPClient
         product={product}
-        initialSelectedColor={initialSelectedColor}
-        initialSelectedSize={initialSelectedSize}
         initialRecommendations={recData?.recommendations || []}
         initialRecommendationTitle={recData?.pairingTitle}
       />

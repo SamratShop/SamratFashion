@@ -228,6 +228,22 @@ export function PDPClient({
     }
   }, [initialSize, selectedSize, product.variants]);
 
+  // Client-side query param hydration (e.g. ?color=...&size=...) without de-opting PDP from static generation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const colorParam = searchParams.get("color");
+    if (colorParam) {
+      const decoded = decodeURIComponent(colorParam).toLowerCase();
+      const matched = product.variants.find((v) => v.color?.toLowerCase() === decoded);
+      if (matched?.color) setSelectedColor(matched.color);
+    }
+    const sizeParam = searchParams.get("size");
+    if (sizeParam && sizes.includes(sizeParam)) {
+      setSelectedSize(sizeParam);
+    }
+  }, [product.variants, sizes]);
+
   // Derive the selected variant based on size and color (case-insensitive color matching)
   const selectedVariant = useMemo(() => {
     if (!selectedSize) return null;
