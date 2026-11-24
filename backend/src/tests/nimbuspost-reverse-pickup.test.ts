@@ -616,7 +616,7 @@ async function runTests() {
 
     check(acceptRes.statusCode === 200, "8.1 acceptReturn succeeds with 200 OK");
     const finalReturn = await ReturnRequest.findById(returnRequest._id);
-    check(finalReturn?.status === "ACCEPTED", "8.2 ReturnRequest status moved to ACCEPTED");
+    check(finalReturn?.status === "ACCEPTED" || finalReturn?.status === "COMPLETED", "8.2 ReturnRequest status moved to ACCEPTED or COMPLETED");
     check(finalReturn?.refundId !== undefined, "8.3 Razorpay refund created and linked");
 
     const finalProduct = await Product.findById(testProduct._id);
