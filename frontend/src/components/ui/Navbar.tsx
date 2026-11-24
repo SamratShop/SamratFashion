@@ -22,6 +22,7 @@ import { CategoryItem, getActiveCategories, filterStorefrontCategories } from "@
 import { api } from "@/lib/api";
 import { useStoreSettings } from "@/lib/useStoreSettings";
 import { formatFreeShippingRule } from "@/lib/storeSettingsDefaults";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { motion, AnimatePresence } from "motion/react";
 
 export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
@@ -316,6 +317,7 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
             >
               <User className="w-5 h-5" />
             </Link>
+            <NotificationBell />
             <Link
               href="/account/wishlist"
               aria-label={isGuest ? "Wishlist (sign in required)" : "Saved Wishlist"}

@@ -3349,6 +3349,30 @@ export async function submitRefundToGateway(refundId: string): Promise<IRefund> 
       refund.accountingSettlementStatus = isSettled ? 'COMPLETED' : 'RECONCILIATION_REQUIRED';
       refund.processedAt = new Date();
       await refund.save();
+
+      try {
+        const User = mongoose.model('User');
+        const customer = await User.findById(order.userId).select('name email');
+        if (customer && customer.email) {
+          const { notificationService } = require('../notifications/notificationService');
+          notificationService.notify({
+            eventType: 'REFUND_PROCESSED',
+            entityType: 'ORDER',
+            entityId: order._id,
+            recipientEmail: customer.email,
+            idempotencyKey: `REFUND_PROCESSED:${refund._id}`,
+            data: {
+              customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+              orderNumber: order.orderNumber,
+              amount: refund.amount,
+              refundId: refund._id?.toString(),
+              userId: order.userId,
+            },
+          });
+        }
+      } catch (notifErr) {
+        console.warn('[REFUND] Failed to dispatch REFUND_PROCESSED notification:', notifErr);
+      }
     } else {
       // Gateway queued the refund; remains PENDING until webhook
       refund.status = 'PENDING';

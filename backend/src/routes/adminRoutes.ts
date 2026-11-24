@@ -6,6 +6,7 @@ import { refundLimiter, returnLimiter } from '../middleware/rateLimiters';
 import { 
   getDashboardMetrics, 
   getDashboardTrend,
+  getLiveOrderPoll,
   getOrders,
   bulkUpdateOrderStatus,
   getOrderById,
@@ -88,6 +89,7 @@ import { uploadStaffMockup } from '../controllers/adminCustomOrderController';
 import { getCreditNotesByOrder } from '../controllers/invoiceController';
 
 // Orders
+router.get('/orders/poll', getLiveOrderPoll);
 router.get('/orders/export/pdf', requirePermission('orders', 'view'), exportOrdersPDF);
 router.get('/orders', requirePermission('orders', 'view'), getOrders);
 router.patch('/orders/bulk-status', requirePermission('orders', 'manage'), bulkUpdateOrderStatus);

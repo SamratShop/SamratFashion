@@ -134,6 +134,13 @@ export const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const url = req.originalUrl || req.url || '';
+    if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health')) {
+      return true;
+    }
+    return false;
+  },
   store: getRateLimitStore("global_api", true),
   message: rateLimitResponse("Too many requests from this network, please try again later."),
 });

@@ -170,6 +170,7 @@ import adminCustomPrintCatalogRoutes from "./routes/adminCustomPrintCatalogRoute
 import adminPrintPricingRoutes from "./routes/adminPrintPricingRoutes";
 import adminTeamRoutes from "./routes/adminTeamRoutes";
 import storeSettingsRoutes from "./routes/storeSettingsRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import fs from "fs";
 import { isPublicUploadPath } from "./utils/uploadPathSecurity";
 
@@ -222,6 +223,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/ops", opsRoutes);
 
 // Feature Routes
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/shipping", shippingRoutes);

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrderStore } from "@/store/useOrderStore";
-import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2 } from "lucide-react";
+import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2, Bell, X } from "lucide-react";
 import { ShareTrackingModal } from "@/components/orders/ShareTrackingModal";
 import Image from "next/image";
+import { subscribeToPush, isPushSupported, getPushPermission } from "@/lib/pushNotifications";
 
 import { downloadOrViewInvoicePdf } from "@/lib/invoiceHelper";
 import { formatCityStatePin, cleanAddressLine } from "@/lib/addressFormat";
@@ -15,6 +16,31 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
   const { currentOrder, fetchOrder, isLoading, error } = useOrderStore();
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [pushPermissionState, setPushPermissionState] = useState<string>("default");
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushDismissed, setPushDismissed] = useState(false);
+
+  useEffect(() => {
+    if (isPushSupported()) {
+      setPushPermissionState(getPushPermission());
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    setPushLoading(true);
+    try {
+      const res = await subscribeToPush();
+      if (res.success) {
+        setPushPermissionState("granted");
+      } else if (res.permission === "denied") {
+        setPushPermissionState("denied");
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -200,6 +226,47 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
             </div>
           </div>
         </section>
+        )}
+
+        {/* Push Notification Opt-in Card (Shown only after order placement, never on page load) */}
+        {!isCancelled && pushPermissionState !== "granted" && !pushDismissed && (
+          <section className="bg-gradient-to-r from-blue-500/10 via-surface to-primary/5 border border-blue-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 text-left">
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-on-surface">Get Real-Time Delivery Updates</h3>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Allow browser notifications to receive instant updates when your order is packed, shipped, and out for delivery.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleEnablePush}
+                disabled={pushLoading}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-xs"
+              >
+                {pushLoading ? "Enabling..." : "Enable Updates"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPushDismissed(true)}
+                className="p-2 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors text-xs font-medium cursor-pointer"
+                aria-label="Dismiss notification prompt"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </section>
+        )}
+        {!isCancelled && pushPermissionState === "granted" && (
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 px-1">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Delivery notifications enabled for this device.</span>
+          </div>
         )}
 
         {/* Cancelled notice panel */}

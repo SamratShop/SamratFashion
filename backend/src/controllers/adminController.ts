@@ -31,6 +31,39 @@ function handleControllerError(res: Response, error: unknown): void {
   res.status(500).json({ success: false, message });
 }
 
+/**
+ * GET /api/admin/orders/poll
+ *
+ * Lightweight, un-rate-limited poll endpoint for the admin dashboard live alert.
+ * Returns only the order count + latest order details (id, number, total, createdAt).
+ * Does not query Redis/Upstash or perform heavy aggregations.
+ */
+export const getLiveOrderPoll = async (req: AuthRequest, res: Response) => {
+  try {
+    const [count, latest] = await Promise.all([
+      Order.estimatedDocumentCount(),
+      Order.findOne().sort({ createdAt: -1 }).select('_id orderNumber total createdAt').lean(),
+    ]);
+
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return res.status(200).json({
+      success: true,
+      data: {
+        orderCount: count,
+        latestOrderId: latest?._id?.toString() || null,
+        latestOrderNumber: latest?.orderNumber || null,
+        latestOrderTotal: latest?.total || 0,
+        createdAt: latest?.createdAt || null,
+      },
+    });
+  } catch (err: unknown) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to poll live orders',
+    });
+  }
+};
+
 
 
 export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
@@ -917,6 +950,48 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
         newStatus: status
       }
     });
+
+    // Dispatch customer notification for lifecycle transitions (SHIPPED / DELIVERED)
+    if (status === 'SHIPPED' || status === 'DELIVERED') {
+      try {
+        const User = mongoose.model('User');
+        const customer = await User.findById(order.userId).select('name email');
+        if (customer && customer.email) {
+          const { notificationService } = require('../services/notifications/notificationService');
+          if (status === 'SHIPPED') {
+            notificationService.notify({
+              eventType: 'ORDER_SHIPPED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_SHIPPED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                carrier: (order as any).tracking?.carrier || 'Standard Courier',
+                trackingNumber: (order as any).tracking?.trackingNumber || (order as any).tracking?.awb || 'N/A',
+                userId: order.userId,
+              },
+            });
+          } else if (status === 'DELIVERED') {
+            notificationService.notify({
+              eventType: 'ORDER_DELIVERED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_DELIVERED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                userId: order.userId,
+              },
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.warn('[ADMIN] Failed to dispatch order status transition notification:', notifErr);
+      }
+    }
 
     res.status(200).json({
       success: true,

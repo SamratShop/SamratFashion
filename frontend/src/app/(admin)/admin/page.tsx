@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,10 @@ import {
   Clock,
   CheckCheck,
   Check,
+  Volume2,
+  VolumeX,
+  X,
+  Package,
 } from "lucide-react";
 
 interface LowStockItem {
@@ -126,6 +130,114 @@ export default function AdminDashboard() {
   const [trendData, setTrendData] = useState<TrendDayItem[]>([]);
   const [trendLoading, setTrendLoading] = useState(false);
 
+  // Live new order alerts
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [liveOrderToast, setLiveOrderToast] = useState<{ orderNumber: string; total: number } | null>(null);
+  const [isSoundMuted, setIsSoundMuted] = useState(false);
+  const lastSeenOrderIdRef = useRef<string | null>(null);
+
+  const playOrderChime = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Tone 1: 587.33 Hz (D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // Tone 2: 880 Hz (A5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.15);
+      gain2.gain.setValueAtTime(0.35, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.55);
+    } catch {
+      // Audio playback fails gracefully if browser restricts autoplay before first interaction
+    }
+  }, []);
+
+  const toggleSoundMute = () => {
+    const next = !isSoundMuted;
+    setIsSoundMuted(next);
+    try {
+      localStorage.setItem("admin_order_sound_muted", String(next));
+    } catch {}
+  };
+
+  useEffect(() => {
+    try {
+      const savedMute = localStorage.getItem("admin_order_sound_muted");
+      if (savedMute !== null) {
+        setIsSoundMuted(savedMute === "true");
+      }
+    } catch {}
+  }, []);
+
+  // Live order polling: every 60s, pauses when tab is hidden, immediate check on tab visible
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    const pollOrders = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      try {
+        const res = await api.get("/admin/orders/poll");
+        if (res.data?.success && res.data.data) {
+          const { latestOrderId, latestOrderNumber, latestOrderTotal } = res.data.data;
+          if (latestOrderId) {
+            if (lastSeenOrderIdRef.current === null) {
+              lastSeenOrderIdRef.current = latestOrderId;
+            } else if (lastSeenOrderIdRef.current !== latestOrderId) {
+              lastSeenOrderIdRef.current = latestOrderId;
+              setLiveOrderToast({
+                orderNumber: latestOrderNumber || "New Order",
+                total: latestOrderTotal || 0,
+              });
+              if (!isSoundMuted) {
+                playOrderChime();
+              }
+              setRefreshKey((k) => k + 1);
+            }
+          }
+        }
+      } catch {
+        // Fail silently — un-rate-limited endpoint, polling never breaks dashboard
+      }
+    };
+
+    pollOrders();
+    timer = setInterval(pollOrders, 60000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pollOrders();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isSoundMuted, playOrderChime]);
+
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good morning");
@@ -171,7 +283,7 @@ export default function AdminDashboard() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, refreshKey]);
 
   // Action strip & reconciliation data fetch
   useEffect(() => {
@@ -426,6 +538,19 @@ export default function AdminDashboard() {
           >
             <span className="material-symbols-outlined text-[16px]">monitor_heart</span> Health
           </Link>
+          <button
+            type="button"
+            onClick={toggleSoundMute}
+            title={isSoundMuted ? "Order Alert Sound: Muted (Click to Unmute)" : "Order Alert Sound: Active (Click to Mute)"}
+            className={`min-h-[44px] px-3.5 py-2 border rounded-lg font-mono text-xs uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+              isSoundMuted
+                ? "bg-surface border-outline-variant text-neutral-400 hover:text-on-surface"
+                : "bg-surface border-outline-variant hover:border-primary text-primary"
+            }`}
+          >
+            {isSoundMuted ? <VolumeX className="w-4 h-4 text-neutral-400" /> : <Volume2 className="w-4 h-4 text-primary" />}
+            <span>{isSoundMuted ? "Sound: Off" : "Sound: On"}</span>
+          </button>
         </div>
       </section>
 
@@ -1189,6 +1314,40 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Live Order Alert Floating Toast */}
+      {liveOrderToast && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 bg-neutral-900 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 duration-300 border border-neutral-700"
+        >
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="font-bold text-sm">New Order Received!</p>
+            <p className="text-xs text-neutral-300">
+              #{liveOrderToast.orderNumber} — ₹{liveOrderToast.total?.toLocaleString("en-IN")}
+            </p>
+          </div>
+          <Link
+            href="/admin/orders"
+            onClick={() => setLiveOrderToast(null)}
+            className="ml-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+          >
+            View
+          </Link>
+          <button
+            type="button"
+            onClick={() => setLiveOrderToast(null)}
+            className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Dismiss alert"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <div className="h-8" />
     </div>

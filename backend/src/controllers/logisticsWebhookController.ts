@@ -3,7 +3,9 @@ import crypto from 'crypto';
 import { Shipment } from '../models/Shipment';
 import { ReverseShipment } from '../models/ReverseShipment';
 import { Order } from '../models/Order';
+import { User } from '../models/User';
 import { LogisticsEventLog } from '../models/LogisticsEventLog';
+import { notificationService } from '../services/notifications/notificationService';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/AppError';
 
@@ -17,7 +19,7 @@ export const handleLogisticsWebhook = catchAsync(async (req: Request, res: Respo
     throw new AppError('Logistics webhook secret is missing in server environment', 500);
   }
   const effectiveSecret = secret || 'dev_logistics_webhook_secret_key_12345';
-  const signature = req.headers['x-nimbus-signature'] || req.headers['x-logistics-signature'] || req.headers['x-shipment-signature'] || req.headers['x-delhivery-signature'];
+  const signature = req.headers['x-nimbus-signature'] || req.headers['x-hmac-sha256'] || req.headers['x-logistics-signature'] || req.headers['x-shipment-signature'] || req.headers['x-delhivery-signature'];
 
   let rawBodyString: string;
   if (Buffer.isBuffer(req.body)) {
@@ -179,6 +181,27 @@ export const handleLogisticsWebhook = catchAsync(async (req: Request, res: Respo
       if (order && order.status !== 'DELIVERED') {
         order.status = 'DELIVERED';
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email').lean();
+          const recipientEmail = customer?.email || (order as any).shippingAddress?.email;
+          if (recipientEmail) {
+            await notificationService.notify({
+              eventType: 'ORDER_DELIVERED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail,
+              idempotencyKey: `WEBHOOK_DELIVERED:${order._id}`,
+              data: {
+                customerName: customer?.name || order.shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[LogisticsWebhook] Failed to dispatch ORDER_DELIVERED notification:', notifErr);
+        }
       }
     } else if (['PICKED_UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(mappedStatus)) {
       shipment.shippedAt = shipment.shippedAt || eventTime;
@@ -186,6 +209,29 @@ export const handleLogisticsWebhook = catchAsync(async (req: Request, res: Respo
       if (order && ['PROCESSING', 'CONFIRMED'].includes(order.status)) {
         order.status = 'SHIPPED';
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email').lean();
+          const recipientEmail = customer?.email || (order as any).shippingAddress?.email;
+          if (recipientEmail) {
+            await notificationService.notify({
+              eventType: 'ORDER_SHIPPED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail,
+              idempotencyKey: `WEBHOOK_SHIPPED:${order._id}`,
+              data: {
+                customerName: customer?.name || order.shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                carrier: (shipment as any).courierName || 'NimbusPost',
+                trackingNumber: shipment.awbNumber || awb,
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[LogisticsWebhook] Failed to dispatch ORDER_SHIPPED notification:', notifErr);
+        }
       }
     }
   }

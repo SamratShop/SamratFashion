@@ -370,6 +370,47 @@ export async function cancelOrderWithRefund(input: CancelOrderInput): Promise<Ca
     console.error(`[CANCEL] Failed to write cancellation audit log for order ${cancelledOrder._id}:`, auditErr);
   }
 
+  // Dispatch customer cancellation & refund notifications (fail-safe)
+  try {
+    const User = mongoose.model('User');
+    const customer = await User.findById(cancelledOrder.userId).select('name email');
+    if (customer && customer.email) {
+      const { notificationService } = require('./notifications/notificationService');
+      notificationService.notify({
+        eventType: 'ORDER_CANCELLED',
+        entityType: 'ORDER',
+        entityId: cancelledOrder._id,
+        recipientEmail: customer.email,
+        idempotencyKey: `ORDER_CANCELLED:${cancelledOrder._id}`,
+        data: {
+          customerName: customer.name || 'Customer',
+          orderNumber: cancelledOrder.orderNumber,
+          isRefundPending: refund ? refund.status !== 'PROCESSED' : false,
+          userId: cancelledOrder.userId,
+        },
+      });
+
+      if (refund && refund.status === 'PROCESSED') {
+        notificationService.notify({
+          eventType: 'REFUND_PROCESSED',
+          entityType: 'ORDER',
+          entityId: cancelledOrder._id,
+          recipientEmail: customer.email,
+          idempotencyKey: `REFUND_PROCESSED:${refund._id || cancelledOrder._id}`,
+          data: {
+            customerName: customer.name || 'Customer',
+            orderNumber: cancelledOrder.orderNumber,
+            amount: refund.amount,
+            refundId: refund._id?.toString(),
+            userId: cancelledOrder.userId,
+          },
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.warn('[CANCEL] Failed to dispatch cancellation notification:', notifErr);
+  }
+
   return { order: cancelledOrder, refund, refundError, inventoryError };
 }
 
