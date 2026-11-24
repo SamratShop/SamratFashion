@@ -25,16 +25,13 @@ import paymentRoutes from "./routes/paymentRoutes";
 import webhookRoutes from "./routes/webhookRoutes";
 import { razorpayWebhook } from "./controllers/webhookController";
 import adminRoutes from "./routes/adminRoutes";
-import customDesignRoutes from "./routes/customDesignRoutes";
 import pricingRoutes from "./routes/pricingRoutes";
-import customTemplateRoutes from "./routes/customTemplateRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import opsRoutes from "./routes/opsRoutes";
-import aiRoutes from "./routes/aiRoutes";
 
 import { validateProductionEnv, validateMandatorySecrets, isStrictProductionOrStaging } from "./config/env";
 import { globalLimiter } from "./middleware/rateLimiters";
-import { requireCustomDesignEnabled, requireBulkOrderEnabled } from "./config/features";
+import { requireBulkOrderEnabled } from "./config/features";
 import { startOrderExpiryScheduler, stopOrderExpiryScheduler } from "./services/orderExpiryService";
 import { startLogCleanupScheduler, stopLogCleanupScheduler } from "./services/logCleanupService";
 import { disconnectDB } from "./config/db";
@@ -153,8 +150,6 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-import adminCustomOrderRoutes from "./routes/adminCustomOrderRoutes";
-import adminProductionRoutes from "./routes/adminProductionRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
 import adminReviewRoutes from "./routes/adminReviewRoutes";
 import supportRoutes from "./routes/supportRoutes";
@@ -165,9 +160,6 @@ import bulkOrderRoutes from "./routes/bulkOrderRoutes";
 import adminBulkOrderRoutes from "./routes/adminBulkOrderRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
 import uploadRoutes from "./routes/uploadRoutes";
-import customPrintCatalogRoutes from "./routes/customPrintCatalogRoutes";
-import adminCustomPrintCatalogRoutes from "./routes/adminCustomPrintCatalogRoutes";
-import adminPrintPricingRoutes from "./routes/adminPrintPricingRoutes";
 import adminTeamRoutes from "./routes/adminTeamRoutes";
 import storeSettingsRoutes from "./routes/storeSettingsRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
@@ -231,36 +223,23 @@ app.use("/api/store-settings", storeSettingsRoutes);
 app.use("/api/catalog", catalogRoutes);
 app.use("/api/catalog", cmsCatalogRoutes);
 app.use("/api/catalog/cms", cmsCatalogRoutes);
-app.use("/api/admin", adminCatalogRoutes);
-// Mount the more specific custom-orders router FIRST so GET /custom-orders and
-// GET /custom-orders/:id resolve here; the generic admin router's legacy handlers
-// for those paths (a different, incompatible response shape) become dead.
-app.use("/api/admin/custom-orders", requireCustomDesignEnabled, adminCustomOrderRoutes);
+app.use("/api/admin/bulk-orders", requireBulkOrderEnabled, adminBulkOrderRoutes);
 app.use("/api/admin/recovery", adminRecoveryRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/admin/production", requireCustomDesignEnabled, adminProductionRoutes);
 app.use("/api/admin/reviews", adminReviewRoutes);
 app.use("/api/admin/support", adminSupportRoutes);
 app.use("/api/admin/cms", adminCmsRoutes);
-app.use("/api/admin/bulk-orders", requireBulkOrderEnabled, adminBulkOrderRoutes);
 app.use("/api/admin/team", adminTeamRoutes);
+app.use("/api/admin", adminCatalogRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use("/api/designs", requireCustomDesignEnabled, customDesignRoutes);
 app.use("/api/pricing", pricingRoutes);
-app.use("/api/custom-templates", requireCustomDesignEnabled, customTemplateRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/bulk-orders", requireBulkOrderEnabled, bulkOrderRoutes);
-app.use("/api/custom-print-catalog", requireCustomDesignEnabled, customPrintCatalogRoutes);
-app.use("/api/admin/custom-print-catalog", requireCustomDesignEnabled, adminCustomPrintCatalogRoutes);
-app.use("/api/admin/print-catalog", requireCustomDesignEnabled, adminCustomPrintCatalogRoutes);
-app.use("/api/admin/print-pricing", requireCustomDesignEnabled, adminPrintPricingRoutes);
-app.use("/api/admin/pricing-configs", requireCustomDesignEnabled, adminPrintPricingRoutes);
-app.use("/api/ai", requireCustomDesignEnabled, aiRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response, next) => {

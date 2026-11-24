@@ -880,7 +880,7 @@ export default function AdminBannersClient() {
                     </span>
                     {[
                       { label: "All Shop", path: "/shop" },
-                      { label: "Custom Printing", path: "/custom-printing" },
+                      { label: "Hoodies", path: "/shop?category=hoodies" },
                       { label: "T-Shirts", path: "/shop?category=t-shirts" },
                       { label: "Special Offers", path: "/offers" },
                     ].map((preset) => (

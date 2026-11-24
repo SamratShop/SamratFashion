@@ -164,7 +164,7 @@ const bulkOrderRequestSchema = new Schema<IBulkOrderRequest>(
     totalQuantity: { type: Number, required: true, min: 1 },
     colorAllocation: { type: String, trim: true },
     customPrintingRequired: { type: Boolean, default: false },
-    customDesignId: { type: Schema.Types.ObjectId, ref: "CustomDesign" },
+    customDesignId: { type: Schema.Types.ObjectId },
     printLocations: { type: [String], default: undefined },
     printMethod: { type: String, default: "DTF Transfer" },
     artworkFiles: { type: [artworkFileSchema], default: [] },

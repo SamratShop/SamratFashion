@@ -3,10 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import DOMPurify from 'isomorphic-dompurify';
 import { ImageService } from '../services/image/ImageService';
-import { isCustomDesignEnabled } from '../config/features';
-import { CustomDesign } from '../models/CustomDesign';
 import { Product } from '../models/Product';
 import { Order } from '../models/Order';
+import { isCustomDesignEnabled } from '../config/features';
 import { isPrivateUploadId, normalizeUploadRelativePath } from '../utils/uploadPathSecurity';
 
 const ALLOWED_CATEGORIES = ['product', 'banner', 'campaign', 'custom-artwork', 'review'] as const;
@@ -234,10 +233,6 @@ const PRIVATE_ARTWORK_MIME: Record<string, string> = {
   '.pdf': 'application/pdf',
 };
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /**
  * Authenticated retrieval for private customer artwork.
  *
@@ -271,28 +266,8 @@ export async function getPrivateArtwork(req: Request, res: Response): Promise<vo
 
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
     if (!isAdmin) {
-      // The stored URL may include a scheme/host or a query string; match the
-      // canonical publicId at the end of the value.
-      const urlSuffix = new RegExp(`${escapeRegex(publicId)}(?:[?#].*)?$`, 'i');
-
-      const design = await CustomDesign.findOne({
-        userId: user.id,
-        $or: [
-          { 'artwork.publicId': publicId },
-          { 'artwork.url': { $regex: urlSuffix } },
-          { 'previewImage.front': { $regex: urlSuffix } },
-          { 'previewImage.back': { $regex: urlSuffix } },
-          { 'versions.artworkUrls': { $regex: urlSuffix } },
-          { 'versions.previewUrls': { $regex: urlSuffix } },
-        ],
-      })
-        .select('_id')
-        .lean();
-
-      if (!design) {
-        res.status(404).json({ success: false, message: 'Not found', code: 'NOT_FOUND' });
-        return;
-      }
+      res.status(404).json({ success: false, message: 'Not found', code: 'NOT_FOUND' });
+      return;
     }
 
     const absolutePath = ImageService.resolvePrivateArtworkPath(publicId);

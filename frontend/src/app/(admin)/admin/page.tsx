@@ -521,12 +521,6 @@ export default function AdminDashboard() {
             <span className="material-symbols-outlined text-[16px]">view_in_ar</span> B2B Quotes
           </Link>
           <Link
-            href="/admin/custom-orders"
-            className="min-h-[44px] px-3.5 py-2 bg-surface border border-outline-variant hover:border-primary text-on-surface font-mono text-xs uppercase font-bold tracking-wider rounded-lg transition-all flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[16px]">palette</span> Custom Proofs
-          </Link>
-          <Link
             href="/admin/invoices"
             className="min-h-[44px] px-3.5 py-2 bg-surface border border-outline-variant hover:border-primary text-on-surface font-mono text-xs uppercase font-bold tracking-wider rounded-lg transition-all flex items-center gap-1.5"
           >

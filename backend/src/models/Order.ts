@@ -206,7 +206,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
   cancellationReason: { type: String, trim: true },
   cancellationSource: { type: String, enum: ['CUSTOMER', 'ADMIN', 'SYSTEM'] },
   cancelledValue: { type: Number, default: 0, min: 0 },
-  customDesignId: { type: Schema.Types.ObjectId, ref: 'CustomDesign' },
+  customDesignId: { type: Schema.Types.ObjectId },
   customizationSnapshot: {
     name: { type: String },
     previewImage: { type: String },
@@ -219,7 +219,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
     {
       color: { type: String, required: true },
       variantId: { type: Schema.Types.ObjectId, required: true },
-      designId: { type: Schema.Types.ObjectId, ref: "CustomDesign" },
+      designId: { type: Schema.Types.ObjectId },
       purchasedDesignVersion: { type: Number },
       approvedDesignVersion: { type: Number, default: null },
       sizeDistribution: [

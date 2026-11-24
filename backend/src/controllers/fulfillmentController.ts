@@ -4,7 +4,6 @@ import PDFDocument from 'pdfkit';
 import { Order, IOrder } from '../models/Order';
 import { Fulfillment, FulfillmentStatus, IFulfillment, IFulfillmentItem } from '../models/Fulfillment';
 import { Shipment } from '../models/Shipment';
-import { PrintJob, PrintJobStatus } from '../models/PrintJob';
 import { AuditLog } from '../models/AuditLog';
 import { AppError } from '../utils/AppError';
 import { renderPackingSlipDocument } from '../utils/packingSlipRenderer';
@@ -144,13 +143,12 @@ export const getFulfillment = async (req: AuthRequest, res: Response) => {
     if (!order) throw new AppError('Order not found', 404);
 
     const fulfillment = await getOrCreateFulfillment(id, order.userId.toString(), req.user.id);
-    const printJobs = await PrintJob.find({ orderId: id });
 
     res.status(200).json({
       success: true,
       data: {
         fulfillment,
-        printJobs
+        printJobs: []
       }
     });
   } catch (error: any) {
@@ -379,38 +377,6 @@ export const qcCheckFulfillment = async (req: AuthRequest, res: Response) => {
     if (!order) throw new AppError('Order not found', 404);
 
     const fulfillment = await getOrCreateFulfillment(id, order.userId.toString(), req.user.id);
-
-    // Custom Print QC Dependency Check
-    const hasCustomItems = order.items.some(i => i.isCustomized || i.customDesignId);
-    if (hasCustomItems && status === 'PASSED') {
-      // 1. Enforce mockup approval for all custom items
-      for (const item of order.items) {
-        if (item.isCustomized || item.customDesignId) {
-          const isApprovedOrLegacy = item.approvalStatus === 'approved' || item.approvalStatus === 'in_production' || item.approvalStatus === undefined;
-          if (!isApprovedOrLegacy) {
-            throw new AppError(
-              `Order contains unapproved custom item (${item.productName || item.productId}). Customer mockup approval is required before Quality Check (QC) PASS.`,
-              400,
-              'QC_MOCKUP_APPROVAL_REQUIRED'
-            );
-          }
-        }
-      }
-
-      // 2. Enforce Print Job completion
-      const printJobs = await PrintJob.find({ orderId: id });
-      const uncompletedPrint = printJobs.find(
-        pj => ![PrintJobStatus.COMPLETED, PrintJobStatus.PRINTED].includes(pj.status)
-      );
-
-      if (uncompletedPrint || printJobs.length === 0) {
-        throw new AppError(
-          'Custom print production must be COMPLETED before Quality Check (QC) PASS.',
-          400,
-          'QC_PRODUCTION_DEPENDENCY_ERROR'
-        );
-      }
-    }
 
     fulfillment.qc = {
       status,

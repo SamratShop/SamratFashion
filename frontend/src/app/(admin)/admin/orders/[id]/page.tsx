@@ -5,7 +5,6 @@ import { api } from "@/lib/api";
 import Link from "next/link";
 import Image from "next/image";
 
-import { StaffMockupManager } from "@/components/admin/StaffMockupManager";
 import { downloadOrViewInvoicePdf } from "@/lib/invoiceHelper";
 import { formatCityStatePin, cleanAddressLine } from "@/lib/addressFormat";
 import { NimbusPostCourierComparison } from "@/components/admin/NimbusPostCourierComparison";
@@ -1245,12 +1244,6 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
                           </span>
                         </div>
                       </div>
-
-                      {(item.isCustomized || item.customDesignId || item.designFiles?.length || item.customizationNotes) && (
-                        <div className="mt-4 pt-4 border-t border-outline-variant/20">
-                          <StaffMockupManager orderId={order._id} item={item} onRefresh={fetchOrder} />
-                        </div>
-                      )}
                     </div>
                   </div>
                 );

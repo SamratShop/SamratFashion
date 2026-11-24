@@ -12,7 +12,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, isItemInWishlist } from "@/store/useWishlistStore";
 import ProductReviewsSection from "@/components/catalog/ProductReviewsSection";
-import SizeGuideModal from "@/components/custom-printing/SizeGuideModal";
+import SizeGuideModal from "@/components/catalog/SizeGuideModal";
 import { ProductShareModal } from "@/components/catalog/ProductShareModal";
 import { useStoreSettings } from "@/lib/useStoreSettings";
 import { formatFreeShippingRule } from "@/lib/storeSettingsDefaults";

@@ -1,14 +1,13 @@
 import { Router } from "express";
-import { requireCustomDesignEnabled } from "../config/features";
-import { calculatePricing } from "../controllers/pricingController";
 import {
+  calculatePricing,
   getPublicPricingRule,
   calculatePublicBulkEstimate,
-} from "../controllers/adminPrintPricingController";
+} from "../controllers/pricingController";
 
 const router = Router();
 
-router.post("/calculate", requireCustomDesignEnabled, calculatePricing);
+router.post("/calculate", calculatePricing);
 router.get("/volume-rules", getPublicPricingRule);
 router.post("/volume-estimate", calculatePublicBulkEstimate);
 

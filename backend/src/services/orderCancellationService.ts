@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { Order, IOrder, ICancellationOperation } from '../models/Order';
 import { Shipment } from '../models/Shipment';
-import { PrintJob } from '../models/PrintJob';
 import { AuditLog } from '../models/AuditLog';
 import { Payment } from '../models/Payment';
 import { PaymentAttempt } from '../models/PaymentAttempt';
@@ -69,7 +68,6 @@ export interface CancelOrderItemsOutcome {
 
 const BLOCKED_ORDER_STATUSES = ['SHIPPED', 'DELIVERED', 'CANCELLED'];
 const HANDED_OFF_SHIPMENT_STATUSES = ['PICKED_UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'];
-const CONFIRMED_PRINT_STATES = ['READY_FOR_PRINT', 'PRINTING', 'QUALITY_CHECK', 'PRINTED', 'COMPLETED'];
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -84,7 +82,7 @@ function errorMessage(err: unknown): string {
  * (and recorded as a refund/audit record) so it can be retried manually.
  */
 export async function cancelOrderWithRefund(input: CancelOrderInput): Promise<CancelOrderOutcome> {
-  const { orderId, actorId, actorRole, source, enforceCustomPrintLock } = input;
+  const { orderId, actorId, actorRole, source } = input;
   const reason = (input.reason || '').trim() || (source === 'CUSTOMER' ? 'CUSTOMER_CANCELLED' : `${source}_CANCELLED`);
 
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
@@ -105,17 +103,6 @@ export async function cancelOrderWithRefund(input: CancelOrderInput): Promise<Ca
   const shipment = await Shipment.findOne({ orderId: order._id });
   if (shipment && HANDED_OFF_SHIPMENT_STATUSES.includes(shipment.status)) {
     throw new AppError('Order has already been shipped and cannot be cancelled', 400);
-  }
-
-  if (enforceCustomPrintLock) {
-    const printJobs = await PrintJob.find({ orderId: order._id });
-    const isCustomConfirmed = printJobs.some((pj) => CONFIRMED_PRINT_STATES.includes(pj.status));
-    if (isCustomConfirmed) {
-      throw new AppError(
-        'Custom-printed orders cannot be cancelled once customization has been confirmed by Samrat Fashion.',
-        400
-      );
-    }
   }
 
   const now = new Date();
@@ -423,7 +410,7 @@ export async function cancelOrderWithRefund(input: CancelOrderInput): Promise<Ca
  * - If all items in the order become cancelled, automatically transitions order to CANCELLED.
  */
 export async function cancelOrderItemsWithRefund(input: CancelOrderItemsInput): Promise<CancelOrderItemsOutcome> {
-  const { orderId, items, actorId, actorRole, source, enforceCustomPrintLock } = input;
+  const { orderId, items, actorId, actorRole, source } = input;
   const reason = (input.reason || '').trim() || (source === 'CUSTOMER' ? 'CUSTOMER_PARTIAL_CANCELLED' : `${source}_PARTIAL_CANCELLED`);
 
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
@@ -617,21 +604,6 @@ export async function cancelOrderItemsWithRefund(input: CancelOrderItemsInput): 
     }
 
     // Validate requested items
-    const requestedItemIds = items.map((i) => String(i.itemId));
-    if (enforceCustomPrintLock) {
-      const printJobs = await PrintJob.find({
-        orderId: order._id,
-        orderItemId: { $in: requestedItemIds },
-      });
-      const isCustomConfirmed = printJobs.some((pj) => CONFIRMED_PRINT_STATES.includes(pj.status));
-      if (isCustomConfirmed) {
-        throw new AppError(
-          'Custom-printed items cannot be cancelled once customization has been confirmed by Samrat Fashion.',
-          400
-        );
-      }
-    }
-
     // Aggregate requests by itemId
     const requestMap = new Map<string, number>();
     for (const reqItem of items) {
