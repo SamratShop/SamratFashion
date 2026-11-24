@@ -182,16 +182,6 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
       pricingSnapshot: snapshot,
       designFiles,
       customizationNotes,
-      approvalStatus: item.isCustomized ? 'pending_design' : undefined,
-      approvalHistory: item.isCustomized ? [{
-        status: 'pending_design',
-        note: customizationNotes || 'Order created',
-        actor: 'customer',
-        timestamp: new Date(),
-      }] : undefined,
-
-      // Legacy V1 Custom
-      customDesignId: item.customDesignId,
       customizationSnapshot: item.customizationSnapshot,
     });
 
@@ -358,28 +348,6 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
     }
 
     throw error;
-  }
-
-  // 6. Link CustomDesign to Order
-  // Every write is explicitly scoped to the authenticated owner. A foreign
-  // design ID can therefore never have its status or order link mutated.
-  if (newOrder) {
-    for (const item of newOrder.items) {
-      if (item.isCustomized && item.customConfigurations) {
-        for (const config of item.customConfigurations) {
-          if (!config.designId) continue;
-
-          const linkResult = await mongoose.model('CustomDesign').updateOne(
-            { _id: config.designId, userId: req.user.id },
-            { $set: { orderId: newOrder._id, status: 'ORDERED' } }
-          );
-
-          if (linkResult.matchedCount !== 1) {
-            throw new AppError('Design not found or does not belong to you', 403, 'FORBIDDEN');
-          }
-        }
-      }
-    }
   }
 
   const createdPayload = sanitizeCustomerOrder(newOrder);

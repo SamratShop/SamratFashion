@@ -416,7 +416,6 @@ export const getQuoteById = async (req: AuthRequest, res: Response, next: NextFu
         populate: [
           { path: "productId", select: "name images basePrice description variants" },
           { path: "catalogItemId" },
-          { path: "customDesignId" },
         ],
       })
       .populate("userId", "name email phone");
