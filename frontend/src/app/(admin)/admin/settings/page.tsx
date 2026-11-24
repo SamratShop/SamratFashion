@@ -362,7 +362,7 @@ export default function AdminStoreSettingsPage() {
         </aside>
       </div>
 
-      {/* Push Notifications & Scheduled Digest Setting */}
+      {/* Push Notifications (Immediate Admin Pushes) */}
       <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-1">
@@ -371,13 +371,11 @@ export default function AdminStoreSettingsPage() {
                 <Bell className="w-4 h-4" />
               </span>
               <h2 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface">
-                Desktop Push Notifications (Scheduled Digest)
+                Desktop Push Notifications (Immediate)
               </h2>
             </div>
             <p className="font-body-sm text-xs text-on-surface-variant max-w-2xl leading-relaxed pt-1">
-              Admin new-order pushes are dispatched as an automated digest at 5 fixed times a day:{" "}
-              <span className="font-mono font-bold text-on-surface">10:00, 13:00, 16:00, 19:00, 21:00 IST</span>.
-              Once enabled, the digest reaches this device even when the admin dashboard tab is closed (browser running in background).
+              You get an instant push for every new order and status change. Once enabled, alerts reach this device even when the admin dashboard tab is closed (browser running in background). A scheduled digest endpoint exists as a dormant fallback if high-volume batching is ever needed.
             </p>
           </div>
           <button
@@ -398,8 +396,8 @@ export default function AdminStoreSettingsPage() {
           <span className={`w-2 h-2 rounded-full ${isPushSubscribed ? "bg-emerald-500" : "bg-neutral-400"} inline-block`} />
           <span>
             {isPushSubscribed
-              ? "This device is registered for external cron digests via self-hosted VAPID push infrastructure (₹0 cost)."
-              : "Click above to register this browser for scheduled order digests."}
+              ? "This device is registered for immediate order pushes via self-hosted VAPID push infrastructure (₹0 cost)."
+              : "Click above to register this browser for immediate order pushes."}
           </span>
         </div>
       </div>

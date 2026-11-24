@@ -66,11 +66,18 @@ export async function subscribeToPush(): Promise<{
       return { success: false, permission, error: 'Permission not granted' };
     }
 
-    // 2. Fetch VAPID public key from backend or env
-    let vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-    if (!vapidKey) {
+    // 2. Fetch VAPID public key from backend first (single source of truth = the key that actually signs),
+    // falling back to NEXT_PUBLIC_VAPID_PUBLIC_KEY if the backend request fails or returns empty.
+    let vapidKey: string | undefined;
+    try {
       const keyRes = await api.get('/notifications/push/public-key');
-      vapidKey = keyRes.data?.data?.publicKey;
+      vapidKey = keyRes.data?.data?.publicKey?.trim();
+    } catch (keyErr) {
+      console.warn('[Push] Failed to fetch VAPID public key from backend, trying env fallback:', keyErr);
+    }
+
+    if (!vapidKey) {
+      vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
     }
 
     if (!vapidKey) {

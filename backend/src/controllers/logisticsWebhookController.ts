@@ -186,12 +186,12 @@ export const handleLogisticsWebhook = catchAsync(async (req: Request, res: Respo
           const customer = await User.findById(order.userId).select('name email').lean();
           const recipientEmail = customer?.email || (order as any).shippingAddress?.email;
           if (recipientEmail) {
-            await notificationService.notify({
+            notificationService.notify({
               eventType: 'ORDER_DELIVERED',
               entityType: 'ORDER',
               entityId: order._id,
               recipientEmail,
-              idempotencyKey: `WEBHOOK_DELIVERED:${order._id}`,
+              idempotencyKey: `ORDER_DELIVERED:${order._id}`,
               data: {
                 customerName: customer?.name || order.shippingAddress?.fullName || 'Customer',
                 orderNumber: order.orderNumber,
@@ -214,12 +214,12 @@ export const handleLogisticsWebhook = catchAsync(async (req: Request, res: Respo
           const customer = await User.findById(order.userId).select('name email').lean();
           const recipientEmail = customer?.email || (order as any).shippingAddress?.email;
           if (recipientEmail) {
-            await notificationService.notify({
+            notificationService.notify({
               eventType: 'ORDER_SHIPPED',
               entityType: 'ORDER',
               entityId: order._id,
               recipientEmail,
-              idempotencyKey: `WEBHOOK_SHIPPED:${order._id}`,
+              idempotencyKey: `ORDER_SHIPPED:${order._id}`,
               data: {
                 customerName: customer?.name || order.shippingAddress?.fullName || 'Customer',
                 orderNumber: order.orderNumber,

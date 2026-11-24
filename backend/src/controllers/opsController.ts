@@ -70,10 +70,11 @@ export const sendAdminOrderDigest = catchAsync(async (_req: Request, res: Respon
 
   const queryWindowStart = state.lastDigestAt;
 
-  // Find orders created since lastDigestAt that are not cancelled or expired
+  // Find orders created since lastDigestAt that are paid and not cancelled or expired
   const newOrders = await Order.find({
     createdAt: { $gt: queryWindowStart },
     status: { $nin: ['CANCELLED', 'EXPIRED'] },
+    paymentStatus: 'PAID',
   })
     .sort({ createdAt: 1 })
     .select('_id orderNumber total createdAt')
