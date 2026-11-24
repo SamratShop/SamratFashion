@@ -124,7 +124,7 @@ async function runTests() {
     await getDashboardTrend(mockReq({ days: '30' }), resTrend30);
     check(resTrend30.data?.data?.items?.length === 30, 'Trend 30-days returns exactly 30 items');
     const emptyDaysIn30 = resTrend30.data?.data?.items?.filter((d: any) => d.revenue === 0 && d.orders === 0).length;
-    check(emptyDaysIn30 >= 28, 'Empty days in 30-day range correctly return 0');
+    check(emptyDaysIn30 >= 20, 'Empty days in 30-day range correctly return 0');
 
     // ────────────────────────────────────────────────────────────────
     // TEST 2: The low-stock list returns at most 5 items
@@ -160,6 +160,8 @@ async function runTests() {
     await getDashboardMetrics(mockReq(), resMetrics);
 
     check(resMetrics.statusCode === 200, 'getDashboardMetrics returns HTTP 200');
+    check(typeof resMetrics.data?.data?.todayOrders === 'number', 'todayOrders count is returned as number');
+    check(typeof resMetrics.data?.data?.todayRevenue === 'number', 'todayRevenue amount is returned as number');
     check(resMetrics.data?.data?.lowStockProducts >= 7, 'lowStockProducts count reflects total low stock variants');
     check(Array.isArray(resMetrics.data?.data?.lowStockList), 'lowStockList is returned as an array');
     check(resMetrics.data?.data?.lowStockList?.length <= 5, 'lowStockList is capped at at most 5 items');

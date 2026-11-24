@@ -8,7 +8,6 @@ import { getServerStoreSettings } from "@/lib/storeSettingsServer";
 import { SITE_CONFIG, SITE_URL, GEO_METADATA_OTHER, getOrganizationJsonLd, getWebSiteJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
-import { AsyncStyleLoader } from "@/components/ui/AsyncStyleLoader";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -127,6 +126,10 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
       </head>
       <body
@@ -142,7 +145,6 @@ export default async function RootLayout({
         <JsonLd id="org-jsonld" data={getOrganizationJsonLd()} />
         <JsonLd id="website-jsonld" data={getWebSiteJsonLd()} />
         <GoogleAnalytics />
-        <AsyncStyleLoader />
         <StoreSettingsProvider initialSettings={storeSettings}>
           <AuthProvider>{children}</AuthProvider>
         </StoreSettingsProvider>

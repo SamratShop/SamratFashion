@@ -12,16 +12,30 @@ export interface ActionChipCounts {
   failedPayments: number;
   failedEmails: number | null;
   lowStockProducts: number;
+  reconciliationCheckFailed?: boolean;
+  notificationsCheckFailed?: boolean;
 }
 
 /**
  * Computes action chips for the admin dashboard Action Needed strip.
- * - Shows a chip ONLY when its count is > 0.
- * - If a count is null (e.g. API failed), that chip is omitted (fails silently).
- * - When all counts are 0, returns an empty array (dashboard renders "All caught up" chip).
+ * - Shows a chip ONLY when its count is > 0 or when a health check fails.
+ * - If a health check fails, shows a warning chip linking to /admin/system-health.
+ * - "All caught up" renders ONLY when both checks succeeded AND all counts are 0 (empty array returned).
  */
 export function computeActionChips(counts: ActionChipCounts): ActionChipItem[] {
   const chips: ActionChipItem[] = [];
+
+  // 0. Health checks failure warning chip (Severity: AMBER)
+  if (counts.reconciliationCheckFailed || counts.notificationsCheckFailed) {
+    chips.push({
+      id: "healthChecksUnavailable",
+      label: "Health checks unavailable — retry",
+      count: 1,
+      href: "/admin/system-health",
+      severity: "amber",
+      icon: "warning",
+    });
+  }
 
   // 1. Failed webhooks (Severity: RED)
   if (counts.failedWebhooks !== null && counts.failedWebhooks > 0) {

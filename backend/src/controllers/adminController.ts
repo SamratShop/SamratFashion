@@ -37,8 +37,16 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
   try {
     const isDbConnected = mongoose.connection.readyState === 1;
 
+    // Calculate start of current day in Asia/Kolkata (IST = UTC+5:30)
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(Date.now() + IST_OFFSET_MS);
+    const istMidnightUtc = new Date(
+      Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate(), 0, 0, 0, 0) - IST_OFFSET_MS
+    );
+
     const [
       orderMetrics,
+      todayMetrics,
       lowStockCountData,
       lowStockList,
       lastWebhook,
@@ -62,6 +70,22 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
             paidOrders: { $sum: { $cond: [{ $eq: ["$paymentStatus", "PAID"] }, 1, 0] } },
             failedPayments: { $sum: { $cond: [{ $eq: ["$paymentStatus", "FAILED"] }, 1, 0] } },
             revenue: { $sum: { $cond: [{ $eq: ["$paymentStatus", "PAID"] }, "$total", 0] } },
+          },
+        },
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: istMidnightUtc },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            todayOrders: { $sum: 1 },
+            todayRevenue: {
+              $sum: { $cond: [{ $eq: ["$paymentStatus", "PAID"] }, "$total", 0] },
+            },
           },
         },
       ]),
@@ -193,6 +217,16 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
     const recoveryCompletedAt = recoveryDoc?.lastRunCompletedAt
       ? new Date(recoveryDoc.lastRunCompletedAt).toISOString()
       : null;
+    const lastRunTime = recoveryDoc?.lastRunCompletedAt
+      ? new Date(recoveryDoc.lastRunCompletedAt).getTime()
+      : null;
+    // Scheduler is considered running if actively RUNNING or completed within the last 15 minutes
+    const isRecoveryFresh = Boolean(
+      lastRunTime && (Date.now() - lastRunTime) <= 15 * 60 * 1000
+    );
+    const isRecoveryRunning = Boolean(
+      recoveryDoc?.status === 'RUNNING' || isRecoveryFresh
+    );
 
     const webhookMap: Record<string, number> = {};
     for (const w of webhookCountsRaw) {
@@ -214,6 +248,8 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
     res.status(200).json({
       success: true,
       data: {
+        todayOrders: todayMetrics[0]?.todayOrders || 0,
+        todayRevenue: todayMetrics[0]?.todayRevenue || 0,
         totalOrders: m.totalOrders,
         pendingOrders: m.pendingOrders,
         confirmedOrders: m.confirmedOrders,
@@ -246,7 +282,7 @@ export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
             recentFailures: hasRecentEmailFailures,
           },
           recoveryScheduler: {
-            running: Boolean(recoveryCompletedAt),
+            running: isRecoveryRunning,
             lastRunCompletedAt: recoveryCompletedAt,
             status: recoveryDoc?.status || 'IDLE',
           },

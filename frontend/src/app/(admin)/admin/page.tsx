@@ -69,6 +69,8 @@ interface PaymentHealthCounts {
 }
 
 interface DashboardMetrics {
+  todayOrders?: number;
+  todayRevenue?: number;
   totalOrders: number;
   pendingOrders: number;
   confirmedOrders: number;
@@ -115,6 +117,8 @@ export default function AdminDashboard() {
   // Action strip alert states (fail silent: null means fetch failed or hidden)
   const [failedWebhooksCount, setFailedWebhooksCount] = useState<number | null>(null);
   const [failedEmailsCount, setFailedEmailsCount] = useState<number | null>(null);
+  const [reconciliationCheckFailed, setReconciliationCheckFailed] = useState(false);
+  const [notificationsCheckFailed, setNotificationsCheckFailed] = useState(false);
   const [reconSummary, setReconSummary] = useState<any>(null);
 
   // Revenue trend chart state
@@ -169,7 +173,7 @@ export default function AdminDashboard() {
     };
   }, [router]);
 
-  // Action strip & reconciliation data fetch (fails silently)
+  // Action strip & reconciliation data fetch
   useEffect(() => {
     const fetchActionStripData = async () => {
       // 1. Webhook reconciliation
@@ -180,9 +184,13 @@ export default function AdminDashboard() {
           setReconSummary(summary);
           const failed = summary?.failedRazorpayWebhooks ?? summary?.unresolvedTotal ?? 0;
           setFailedWebhooksCount(typeof failed === "number" ? failed : 0);
+          setReconciliationCheckFailed(false);
+        } else {
+          setReconciliationCheckFailed(true);
+          setFailedWebhooksCount(null);
         }
       } catch {
-        // Fail silent: hide webhook chip if error
+        setReconciliationCheckFailed(true);
         setFailedWebhooksCount(null);
       }
 
@@ -192,9 +200,13 @@ export default function AdminDashboard() {
         if (notifRes.data?.success) {
           const total = notifRes.data.data?.pagination?.total ?? 0;
           setFailedEmailsCount(typeof total === "number" ? total : 0);
+          setNotificationsCheckFailed(false);
+        } else {
+          setNotificationsCheckFailed(true);
+          setFailedEmailsCount(null);
         }
       } catch {
-        // Fail silent: hide emails chip if error
+        setNotificationsCheckFailed(true);
         setFailedEmailsCount(null);
       }
     };
@@ -226,6 +238,24 @@ export default function AdminDashboard() {
       case "PAID": return "bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold";
       case "FAILED": return "bg-red-50 text-red-700 border border-red-300 font-bold";
       default: return "bg-neutral-100 text-neutral-800 border border-neutral-300 font-medium";
+    }
+  };
+
+  const getOrderBadge = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "DELIVERED":
+        return "bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold";
+      case "SHIPPED":
+      case "CONFIRMED":
+      case "PROCESSING":
+        return "bg-blue-50 text-blue-800 border border-blue-300 font-bold";
+      case "PENDING":
+        return "bg-amber-50 text-amber-800 border border-amber-300 font-medium";
+      case "CANCELLED":
+      case "EXPIRED":
+        return "bg-red-50 text-red-700 border border-red-300 font-bold";
+      default:
+        return "bg-neutral-100 text-neutral-800 border border-neutral-300 font-medium";
     }
   };
 
@@ -292,12 +322,39 @@ export default function AdminDashboard() {
   const pendingPct = Math.round((metrics.pendingOrders / orderTotal) * 100);
   const cancelledPct = Math.round((metrics.cancelledOrders / orderTotal) * 100);
 
+  // Exact Donut Chart metrics (P0-1)
+  const totalOrders = metrics.totalOrders || 0;
+  const deliveredCount = metrics.deliveredOrders || 0;
+  const inProgressCount =
+    (metrics.confirmedOrders || 0) +
+    (metrics.processingOrders || 0) +
+    (metrics.shippedOrders || 0);
+  const pendingCount = metrics.pendingOrders || 0;
+  const cancelledCount = metrics.cancelledOrders || 0;
+
+  const donutDeliveredPct = totalOrders > 0 ? Math.round((deliveredCount / totalOrders) * 100) : 0;
+  const donutInProgressPct = totalOrders > 0 ? Math.round((inProgressCount / totalOrders) * 100) : 0;
+  const donutPendingPct = totalOrders > 0 ? Math.round((pendingCount / totalOrders) * 100) : 0;
+  const donutCancelledPct = totalOrders > 0 ? Math.round((cancelledCount / totalOrders) * 100) : 0;
+
+  // Cumulative percentage stops for exact conic-gradient
+  const stopDelivered = totalOrders > 0 ? (deliveredCount / totalOrders) * 100 : 0;
+  const stopInProgress = stopDelivered + (totalOrders > 0 ? (inProgressCount / totalOrders) * 100 : 0);
+  const stopPending = stopInProgress + (totalOrders > 0 ? (pendingCount / totalOrders) * 100 : 0);
+  const stopCancelled = stopPending + (totalOrders > 0 ? (cancelledCount / totalOrders) * 100 : 0);
+
+  const donutBackground = totalOrders === 0
+    ? "conic-gradient(var(--color-outline-variant, #e4e4e7) 0% 100%)"
+    : `conic-gradient(var(--color-emerald-600, #059669) 0% ${stopDelivered}%, var(--color-blue-600, #2563eb) ${stopDelivered}% ${stopInProgress}%, var(--color-amber-500, #f59e0b) ${stopInProgress}% ${stopPending}%, var(--color-error, #dc2626) ${stopPending}% ${stopCancelled}%, var(--color-outline-variant, #e4e4e7) ${stopCancelled}% 100%)`;
+
   // Compute Action Strip chips using authoritative helper
   const chips = computeActionChips({
     failedWebhooks: failedWebhooksCount,
     failedPayments: metrics.failedPayments,
     failedEmails: failedEmailsCount,
     lowStockProducts: metrics.lowStockProducts,
+    reconciliationCheckFailed,
+    notificationsCheckFailed,
   });
 
   // Payment health counts derived from reconciliation summary or dashboard metrics
@@ -370,6 +427,25 @@ export default function AdminDashboard() {
             <span className="material-symbols-outlined text-[16px]">monitor_heart</span> Health
           </Link>
         </div>
+      </section>
+
+      {/* P1-3: Today Strip (orders + revenue today, IST) */}
+      <section aria-label="Today summary strip" className="flex items-center justify-between px-4 py-2.5 bg-surface-container-low border border-outline-variant/40 rounded-xl text-xs sm:text-sm">
+        <Link
+          href="/admin/orders"
+          className="group inline-flex items-center gap-2 text-on-surface hover:text-primary transition-colors font-medium"
+        >
+          <span className="material-symbols-outlined text-[18px] text-primary">today</span>
+          <span>
+            Today: <strong className="font-bold text-on-surface">{(metrics.todayOrders ?? 0).toLocaleString()} orders</strong> · <strong className="font-bold text-on-surface">₹{(metrics.todayRevenue ?? 0).toLocaleString("en-IN")} revenue</strong>
+          </span>
+          <span className="material-symbols-outlined text-[14px] text-on-surface-variant group-hover:translate-x-0.5 transition-transform">
+            arrow_forward
+          </span>
+        </Link>
+        <span className="text-[11px] font-mono text-on-surface-variant hidden sm:inline">
+          Asia/Kolkata (IST)
+        </span>
       </section>
 
       {/* 1. "Action Needed" Strip — Top of Dashboard, Above KPI Cards */}
@@ -610,7 +686,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-emerald-800 font-body-sm text-body-sm font-medium">
               <TrendingUp className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>From paid orders</span>
+              <span>All time · From paid orders</span>
             </div>
           </div>
         </div>
@@ -951,35 +1027,44 @@ export default function AdminDashboard() {
             <div
               className="relative w-32 h-32 mx-auto rounded-full"
               style={{
-                background: `conic-gradient(#004ac6 0% ${completedPct}%, #c3c6d7 ${completedPct}% ${completedPct + pendingPct}%, #aa3000 ${completedPct + pendingPct}% 100%)`,
+                background: donutBackground,
               }}
             >
-              <div className="absolute inset-2 bg-surface rounded-full flex items-center justify-center flex-col">
-                <span className="font-price-lg text-[20px] text-on-surface">{metrics.totalOrders}</span>
-                <span className="font-label-caps text-[10px] text-on-surface-variant">Total</span>
+              <div className="absolute inset-2 bg-surface rounded-full flex items-center justify-center flex-col text-center px-1">
+                <span className="font-price-lg text-[20px] text-on-surface">{totalOrders}</span>
+                <span className="font-label-caps text-[10px] text-on-surface-variant">
+                  {totalOrders === 0 ? "No orders yet" : "Total"}
+                </span>
               </div>
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex justify-between items-center font-body-sm text-body-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-600" />
                   <span className="text-on-surface">Delivered</span>
                 </div>
-                <span className="font-medium text-on-surface">{completedPct}%</span>
+                <span className="font-medium text-on-surface">{donutDeliveredPct}%</span>
               </div>
               <div className="flex justify-between items-center font-body-sm text-body-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-outline-variant" />
+                  <div className="w-3 h-3 rounded-full bg-blue-600" />
+                  <span className="text-on-surface">In progress</span>
+                </div>
+                <span className="font-medium text-on-surface">{donutInProgressPct}%</span>
+              </div>
+              <div className="flex justify-between items-center font-body-sm text-body-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500" />
                   <span className="text-on-surface">Pending</span>
                 </div>
-                <span className="font-medium text-on-surface">{pendingPct}%</span>
+                <span className="font-medium text-on-surface">{donutPendingPct}%</span>
               </div>
               <div className="flex justify-between items-center font-body-sm text-body-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-secondary" />
+                  <div className="w-3 h-3 rounded-full bg-error" />
                   <span className="text-on-surface">Cancelled</span>
                 </div>
-                <span className="font-medium text-on-surface">{cancelledPct}%</span>
+                <span className="font-medium text-on-surface">{donutCancelledPct}%</span>
               </div>
             </div>
           </div>
@@ -1009,13 +1094,18 @@ export default function AdminDashboard() {
                 >
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="font-bold text-primary">#{order.orderNumber}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getPaymentBadge(order.paymentStatus)}`}>
-                      {order.paymentStatus}
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getOrderBadge(order.status)}`}>
+                      {order.status}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-on-surface font-medium truncate max-w-[160px]">{order.userId?.name || "Customer"}</span>
-                    <span className="font-mono font-bold text-neutral-900">₹{order.total?.toLocaleString("en-IN")}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${getPaymentBadge(order.paymentStatus)}`}>
+                        {order.paymentStatus}
+                      </span>
+                      <span className="font-mono font-bold text-neutral-900">₹{order.total?.toLocaleString("en-IN")}</span>
+                    </div>
                   </div>
                 </Link>
               ))
@@ -1042,12 +1132,25 @@ export default function AdminDashboard() {
                   </tr>
                 ) : recentOrders.map((order) => (
                   <tr key={order._id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0 cursor-pointer" onClick={() => router.push(`/admin/orders/${order._id}`)}>
-                    <td className="py-3 text-on-surface font-medium font-label-caps text-label-caps">{order.orderNumber}</td>
+                    <td className="py-3 text-on-surface font-medium font-label-caps text-label-caps">
+                      <Link
+                        href={`/admin/orders/${order._id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary hover:underline font-bold inline-flex items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary rounded-xs"
+                      >
+                        {order.orderNumber}
+                      </Link>
+                      <div className="mt-0.5">
+                        <span className={`inline-flex items-center px-1.5 py-0.2 rounded font-label-caps text-[9px] ${getPaymentBadge(order.paymentStatus)}`}>
+                          {order.paymentStatus}
+                        </span>
+                      </div>
+                    </td>
                     <td className="py-3 text-on-surface-variant truncate max-w-[120px]">{order.userId?.name || "—"}</td>
                     <td className="py-3 text-on-surface text-right font-medium font-label-caps">₹{order.total?.toLocaleString("en-IN")}</td>
                     <td className="py-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded font-label-caps text-[10px] ${getPaymentBadge(order.paymentStatus)}`}>
-                        {order.paymentStatus}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded font-label-caps text-[10px] ${getOrderBadge(order.status)}`}>
+                        {order.status}
                       </span>
                     </td>
                   </tr>

@@ -68,6 +68,31 @@ test("adminDashboard: Action strip hides individual chips when all counts are 0 
   });
   assert.strictEqual(apiFailed.length, 1);
   assert.strictEqual(apiFailed[0].id, "payments");
+
+  // 4. Health checks failure: When reconciliationCheckFailed or notificationsCheckFailed is true,
+  // warning chip 'Health checks unavailable — retry' must be returned, preventing 'All caught up' state
+  const healthCheckFailed = computeActionChips({
+    failedWebhooks: null,
+    failedPayments: 0,
+    failedEmails: null,
+    lowStockProducts: 0,
+    reconciliationCheckFailed: true,
+  });
+  assert.strictEqual(healthCheckFailed.length, 1);
+  assert.strictEqual(healthCheckFailed[0].id, "healthChecksUnavailable");
+  assert.strictEqual(healthCheckFailed[0].label, "Health checks unavailable — retry");
+  assert.strictEqual(healthCheckFailed[0].href, "/admin/system-health");
+  assert.strictEqual(healthCheckFailed[0].severity, "amber");
+
+  const notifFailed = computeActionChips({
+    failedWebhooks: 0,
+    failedPayments: 0,
+    failedEmails: null,
+    lowStockProducts: 0,
+    notificationsCheckFailed: true,
+  });
+  assert.strictEqual(notifFailed.length, 1);
+  assert.strictEqual(notifFailed[0].id, "healthChecksUnavailable");
 });
 
 test("adminDashboard: payment-health widget shows red when unresolved > 0 and green when unresolved === 0", () => {
