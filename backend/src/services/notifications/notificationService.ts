@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { NotificationLog, NotificationChannel, NotificationStatus } from '../../models/NotificationLog';
 import { Order } from '../../models/Order';
 import { User } from '../../models/User';
+import { PushSubscription } from '../../models/PushSubscription';
 import { getEmailProvider, SendEmailOptions, SendEmailResult } from './emailProviders';
 import { webPushService } from './webPushService';
 import {
@@ -314,10 +315,9 @@ export class NotificationService {
       { upsert: true, returnDocument: 'after' }
     );
 
-    // 2. Customer Web Push (Immediate)
-    // Note: Admin push is never sent here — it is handled strictly via the scheduled digest cron endpoint.
+    // 2. Customer Web Push (Immediate, Async non-blocking)
     if (userId) {
-      await webPushService.sendPushToUser(userId, {
+      webPushService.sendPushToUser(userId, {
         title: inAppContent.title,
         body: inAppContent.message,
         url: inAppContent.link,
@@ -329,6 +329,153 @@ export class NotificationService {
       }).catch((pushErr) => {
         console.warn('[NotificationService] Customer web push failed:', pushErr);
       });
+    }
+
+    // 3. Admin Immediate Web Push (Immediate, Async non-blocking)
+    // Sends immediate push to all opted-in admin devices on order events:
+    // ORDER_CONFIRMED, ORDER_SHIPPED, ORDER_DELIVERED, ORDER_CANCELLED, REFUND_PROCESSED.
+    // Fires asynchronously without awaiting, so it never blocks or slows the request path.
+    this.sendAdminImmediatePush(eventType, entityId.toString(), data).catch((adminPushErr) => {
+      console.warn('[NotificationService] Immediate admin push failed:', adminPushErr);
+    });
+  }
+
+  /**
+   * Builds admin push content for immediate order events.
+   * Content: order number + status + total value.
+   * e.g. "New order #SF-... — ₹X" or "Order #SF-... shipped via <carrier> — ₹X"
+   * Clicking it opens /admin/orders.
+   */
+  public async buildAdminPushContent(
+    eventType: string,
+    entityId: string,
+    data: Record<string, any>
+  ): Promise<{ title: string; body: string; url: string; tag: string } | null> {
+    const adminEvents = new Set([
+      'ORDER_CONFIRMED',
+      'ORDER_CREATED',
+      'ORDER_SHIPPED',
+      'ORDER_DELIVERED',
+      'ORDER_CANCELLED',
+      'REFUND_PROCESSED',
+    ]);
+
+    if (!adminEvents.has(eventType)) {
+      return null;
+    }
+
+    let orderNumber = data.orderNumber;
+    let total = data.total ?? data.amount;
+
+    if ((!orderNumber || total === undefined) && entityId && mongoose.Types.ObjectId.isValid(entityId)) {
+      try {
+        const orderDoc = await Order.findById(entityId).select('orderNumber total').lean();
+        if (orderDoc) {
+          if (!orderNumber) orderNumber = orderDoc.orderNumber;
+          if (total === undefined) total = orderDoc.total;
+        }
+      } catch {
+        // fail-safe ignore
+      }
+    }
+
+    const formattedOrderNum = orderNumber ? `#${orderNumber}` : (entityId ? `#${String(entityId).slice(-6)}` : '');
+    const numTotal = Number(total || 0);
+    const formattedTotal = `₹${numTotal.toLocaleString('en-IN')}`;
+
+    switch (eventType) {
+      case 'ORDER_CONFIRMED':
+      case 'ORDER_CREATED':
+        return {
+          title: `New Order ${formattedOrderNum}`.trim(),
+          body: `New order ${formattedOrderNum} — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-confirmed`,
+        };
+      case 'ORDER_SHIPPED': {
+        const carrierPart = data.carrier ? ` shipped via ${data.carrier}` : ' shipped';
+        return {
+          title: `Order ${formattedOrderNum} Shipped`.trim(),
+          body: `Order ${formattedOrderNum}${carrierPart} — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-shipped`,
+        };
+      }
+      case 'ORDER_DELIVERED':
+        return {
+          title: `Order ${formattedOrderNum} Delivered`.trim(),
+          body: `Order ${formattedOrderNum} delivered — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-delivered`,
+        };
+      case 'ORDER_CANCELLED':
+        return {
+          title: `Order ${formattedOrderNum} Cancelled`.trim(),
+          body: `Order ${formattedOrderNum} cancelled — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-cancelled`,
+        };
+      case 'REFUND_PROCESSED':
+        return {
+          title: `Refund Processed ${formattedOrderNum}`.trim(),
+          body: `Refund of ${formattedTotal} processed for order ${formattedOrderNum}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-refund`,
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Dispatches immediate web push to all opted-in admins on order events.
+   * Fail-Safe: Will never throw to caller and runs non-blocking.
+   * Reuses webPushService.sendPushToUser and existing PushSubscription records.
+   */
+  public async sendAdminImmediatePush(
+    eventType: string,
+    entityId: string,
+    data: Record<string, any>
+  ): Promise<void> {
+    try {
+      const adminPushContent = await this.buildAdminPushContent(eventType, entityId, data);
+      if (!adminPushContent) {
+        return;
+      }
+
+      // Find all distinct admin userIds with active subscriptions
+      const adminUserIds = await PushSubscription.distinct('userId', {
+        role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
+      });
+
+      if (!adminUserIds || adminUserIds.length === 0) {
+        return;
+      }
+
+      const orderNumber = data.orderNumber || (entityId ? String(entityId).slice(-6) : '');
+
+      // Send to each opted-in admin user via webPushService.sendPushToUser
+      await Promise.allSettled(
+        adminUserIds.map((adminId) =>
+          webPushService.sendPushToUser(adminId, {
+            title: adminPushContent.title,
+            body: adminPushContent.body,
+            url: adminPushContent.url,
+            tag: adminPushContent.tag,
+            data: {
+              orderId: entityId,
+              orderNumber,
+              eventType,
+              role: 'ADMIN',
+            },
+          })
+        )
+      );
+    } catch (err: unknown) {
+      console.warn(
+        '[NotificationService] Failed to dispatch immediate admin push:',
+        err instanceof Error ? err.message : String(err)
+      );
     }
   }
 

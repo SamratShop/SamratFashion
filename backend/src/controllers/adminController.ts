@@ -970,6 +970,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
                 orderNumber: order.orderNumber,
                 carrier: (order as any).tracking?.carrier || 'Standard Courier',
                 trackingNumber: (order as any).tracking?.trackingNumber || (order as any).tracking?.awb || 'N/A',
+                total: order.total,
                 userId: order.userId,
               },
             });
@@ -983,6 +984,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
               data: {
                 customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
                 orderNumber: order.orderNumber,
+                total: order.total,
                 userId: order.userId,
               },
             });

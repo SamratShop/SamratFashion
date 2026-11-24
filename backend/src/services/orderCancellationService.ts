@@ -385,6 +385,7 @@ export async function cancelOrderWithRefund(input: CancelOrderInput): Promise<Ca
         data: {
           customerName: customer.name || 'Customer',
           orderNumber: cancelledOrder.orderNumber,
+          total: cancelledOrder.total,
           isRefundPending: refund ? refund.status !== 'PROCESSED' : false,
           userId: cancelledOrder.userId,
         },

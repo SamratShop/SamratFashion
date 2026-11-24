@@ -225,6 +225,7 @@ export const createShipment = catchAsync(async (req: AuthRequest, res: Response)
             orderNumber: order.orderNumber,
             carrier: shipment.carrier || 'Standard Courier',
             trackingNumber: shipment.awbNumber || 'N/A',
+            total: order.total,
             userId: order.userId,
           },
         });

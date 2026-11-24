@@ -150,7 +150,7 @@ export class WebPushService {
 
   /**
    * Dispatches push notification to all active admin/super_admin subscriptions.
-   * Used exclusively by the scheduled digest cron endpoint.
+   * Reuses sendPushToUser to maintain a single unified dispatch path.
    */
   async sendPushToAdmins(payload: PushPayload): Promise<PushDeliveryResult> {
     try {
@@ -158,11 +158,11 @@ export class WebPushService {
         return { sent: 0, failed: 0, unregistered: 0, error: 'VAPID_NOT_CONFIGURED' };
       }
 
-      const adminSubs = await PushSubscription.find({
+      const adminUserIds = await PushSubscription.distinct('userId', {
         role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
       });
 
-      if (!adminSubs || adminSubs.length === 0) {
+      if (!adminUserIds || adminUserIds.length === 0) {
         return { sent: 0, failed: 0, unregistered: 0 };
       }
 
@@ -171,16 +171,11 @@ export class WebPushService {
       let unregistered = 0;
 
       await Promise.allSettled(
-        adminSubs.map(async (sub) => {
-          const res = await this.sendToSubscription(sub, payload);
-          if (res.success) {
-            sent++;
-          } else {
-            failed++;
-            if (res.unregistered) {
-              unregistered++;
-            }
-          }
+        adminUserIds.map(async (adminId) => {
+          const res = await this.sendPushToUser(adminId, payload);
+          sent += res.sent;
+          failed += res.failed;
+          unregistered += res.unregistered;
         })
       );
 
