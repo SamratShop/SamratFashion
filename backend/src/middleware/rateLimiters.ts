@@ -135,6 +135,9 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    // Local load-test bypass — ONLY when explicitly enabled in local .env.
+    // Never set DISABLE_RATE_LIMIT=true on Render/production.
+    if (process.env.DISABLE_RATE_LIMIT === "true") return true;
     const url = req.originalUrl || req.url || '';
     if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health')) {
       return true;
