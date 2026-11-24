@@ -645,7 +645,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
         {order.returns && order.returns.length > 0 && (
           <section className="bg-surface-container-lowest p-4 sm:p-6 rounded-xl border border-outline-variant/20">
             <h2 className="font-title-lg text-lg sm:text-title-lg font-bold text-on-surface mb-4 flex items-center gap-2">
-              Returns
+              Returns ({order.returns.length})
             </h2>
             <div className="space-y-3 sm:space-y-4">
               {order.returns.map((r: any) => (
@@ -658,24 +658,47 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                       </div>
                     </div>
                     <div className="text-right shrink-0 max-w-[55%]">
-                      <span className={`inline-block px-2 py-1 rounded text-[10px] sm:text-xs font-bold break-words ${
-                        ['REQUESTED', 'INSPECTING'].includes(r.status) ? 'bg-orange-100 text-orange-800' :
-                        r.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' :
-                        r.status === 'RECEIVED' ? 'bg-purple-100 text-purple-800' :
-                        ['ACCEPTED', 'COMPLETED'].includes(r.status) ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border break-words ${
+                        ['REQUESTED', 'INSPECTING'].includes(r.status) ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                        r.status === 'APPROVED' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                        r.status === 'RECEIVED' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                        ['ACCEPTED', 'COMPLETED'].includes(r.status) ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                        'bg-red-50 text-red-800 border-red-200'
                       }`}>
                         {r.status}
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs sm:text-sm space-y-2">
-                    {r.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-3 border-b border-outline-variant/10 pb-1.5 last:border-0">
-                        <span className="text-on-surface-variant break-all">Variant: {item.variantId.substring(0, 8)}... (Qty: {item.quantity})</span>
-                        <span className="shrink-0">Reason: {item.reason}</span>
+                  {r.returnAwbNumber && (
+                    <div className="my-2.5 p-2 bg-surface-container-low rounded-lg border border-outline-variant/20 text-xs font-mono flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-primary">local_shipping</span>
+                        <span className="font-semibold text-on-surface">{r.returnCarrier || "Reverse Courier"}:</span>
+                        <span className="font-bold text-primary select-all">{r.returnAwbNumber}</span>
                       </div>
-                    ))}
+                      <span className="text-[10px] text-on-surface-variant font-medium">Doorstep Pickup Scheduled</span>
+                    </div>
+                  )}
+                  <div className="mt-3 text-xs sm:text-sm space-y-2">
+                    {r.items.map((item: any, idx: number) => {
+                      const matchedItem = order.items.find(
+                        (oi: any) => oi.variantId?.toString() === item.variantId?.toString()
+                      );
+                      const itemName = matchedItem?.productName || "Item";
+                      const itemVariant = matchedItem 
+                        ? `Size: ${matchedItem.selectedSize}, Color: ${matchedItem.selectedColor}`
+                        : `Variant: ${item.variantId.substring(0, 8)}...`;
+
+                      return (
+                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-3 border-b border-outline-variant/10 pb-2 last:border-0 last:pb-0">
+                          <div>
+                            <p className="font-semibold text-on-surface">{itemName}</p>
+                            <p className="text-[11px] text-on-surface-variant font-mono">{itemVariant} • Qty: {item.quantity}</p>
+                          </div>
+                          <span className="text-xs text-on-surface-variant shrink-0 font-medium">Reason: {item.reason}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   {r.status === 'REQUESTED' && (
                     <div className="mt-3 flex justify-end">
@@ -861,15 +884,66 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                     {isRetrying ? "Processing..." : "Retry Payment"}
                   </button>
                 )}
-                {order.status === 'DELIVERED' && (
-                  <button 
-                    onClick={() => setIsReturnModalOpen(true)}
-                    className="w-full min-h-[48px] mt-4 bg-surface-container border border-outline-variant/30 text-on-surface py-3 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-surface-container-high transition-colors"
-                  >
-                    <Package className="w-5 h-5" />
-                    Return Items
-                  </button>
-                )}
+                {order.status === 'DELIVERED' && (() => {
+                  const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : null;
+                  const daysSinceDelivery = deliveredDate 
+                    ? (Date.now() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
+                    : 0;
+                  const isExpired = deliveredDate ? daysSinceDelivery > 7 : false;
+                  const daysRemaining = deliveredDate ? Math.max(0, Math.ceil(7 - daysSinceDelivery)) : 7;
+                  
+                  const returnedQuantities: Record<string, number> = {};
+                  if (order.returns) {
+                    order.returns.forEach((r: any) => {
+                      if (!['CANCELLED', 'REJECTED', 'REJECTED_AFTER_INSPECTION'].includes(r.status)) {
+                        r.items.forEach((item: any) => {
+                          returnedQuantities[item.variantId] = (returnedQuantities[item.variantId] || 0) + item.quantity;
+                        });
+                      }
+                    });
+                  }
+                  const hasReturnableItems = order.items.some((item: any) => {
+                    const remaining = item.quantity - (returnedQuantities[item.variantId] || 0);
+                    return remaining > 0;
+                  });
+
+                  if (isExpired) {
+                    return (
+                      <div className="w-full mt-4 p-3 bg-surface-container-low border border-outline-variant/30 rounded-lg text-center">
+                        <p className="text-xs font-mono font-bold text-on-surface-variant flex items-center justify-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-outline">history_toggle_off</span>
+                          <span>Return window closed (7 days from delivery)</span>
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  if (!hasReturnableItems) {
+                    return (
+                      <div className="w-full mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center dark:bg-blue-950/30 dark:border-blue-800">
+                        <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200 flex items-center justify-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-blue-600">assignment_turned_in</span>
+                          <span>All items in return process / returned</span>
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="w-full mt-4 space-y-1.5">
+                      <button 
+                        onClick={() => setIsReturnModalOpen(true)}
+                        className="w-full min-h-[48px] bg-surface-container border border-outline-variant/30 text-on-surface py-3 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-surface-container-high transition-colors cursor-pointer"
+                      >
+                        <Package className="w-5 h-5" />
+                        <span>Return Items</span>
+                      </button>
+                      <p className="text-[11px] text-center font-mono text-on-surface-variant">
+                        Eligible for return ({daysRemaining} day{daysRemaining === 1 ? '' : 's'} left)
+                      </p>
+                    </div>
+                  );
+                })()}     )}
               </div>
             </section>
 

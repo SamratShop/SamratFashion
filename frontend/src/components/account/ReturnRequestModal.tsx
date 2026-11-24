@@ -177,8 +177,15 @@ export function ReturnRequestModal({ order, onClose, onSuccess }: { order: any, 
 
         <div className="sticky bottom-0 bg-surface-container-lowest z-10 px-4 sm:px-6 py-3 sm:py-4 border-t border-outline-variant/20 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4">
           <button onClick={onClose} disabled={loading} className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-lg font-label-lg font-bold hover:bg-surface-container disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-primary text-on-primary rounded-lg font-label-lg font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading ? "Submitting..." : "Submit Return"}
+          <button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-primary text-on-primary rounded-lg font-label-lg font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer">
+            {loading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Submitting Return...</span>
+              </>
+            ) : (
+              <span>Submit Return</span>
+            )}
           </button>
         </div>
       </div>

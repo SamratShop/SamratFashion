@@ -138,6 +138,17 @@ export const createReturn = catchAsync(async (req: AuthRequest, res: Response) =
       userId: order.userId,
       items: processedItems,
       customerNote,
+      pickupAddress: order.shippingAddress ? {
+        fullName: order.shippingAddress.fullName || '',
+        phone: order.shippingAddress.phone || '',
+        alternatePhone: order.shippingAddress.alternatePhone || '',
+        addressLine1: order.shippingAddress.addressLine1 || '',
+        addressLine2: order.shippingAddress.addressLine2 || '',
+        city: order.shippingAddress.city || '',
+        state: order.shippingAddress.state || '',
+        postalCode: order.shippingAddress.postalCode || '',
+        country: order.shippingAddress.country || 'India',
+      } : undefined,
       status: 'REQUESTED'
     });
 
