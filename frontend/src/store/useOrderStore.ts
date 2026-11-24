@@ -80,6 +80,7 @@ export interface Order {
   hasActiveTrackingToken?: boolean;
   isTrackingTokenRevoked?: boolean;
   trackingTokenExpiresAt?: string;
+  deliveredAt?: string;
   createdAt: string;
   updatedAt: string;
 }

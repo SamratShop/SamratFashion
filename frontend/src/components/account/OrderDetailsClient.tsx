@@ -943,7 +943,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                       </p>
                     </div>
                   );
-                })()}     )}
+                })()}
               </div>
             </section>
 
