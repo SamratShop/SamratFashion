@@ -30,7 +30,7 @@ import healthRoutes from "./routes/healthRoutes";
 import opsRoutes from "./routes/opsRoutes";
 
 import { validateProductionEnv, validateMandatorySecrets, isStrictProductionOrStaging } from "./config/env";
-import { globalLimiter } from "./middleware/rateLimiters";
+import { globalLimiter, catalogLimiter } from "./middleware/rateLimiters";
 import { requireBulkOrderEnabled } from "./config/features";
 import { startOrderExpiryScheduler, stopOrderExpiryScheduler } from "./services/orderExpiryService";
 import { startLogCleanupScheduler, stopLogCleanupScheduler } from "./services/logCleanupService";
@@ -107,7 +107,9 @@ app.use("/api/webhooks", express.raw({ type: 'application/json' }), webhookRoute
 app.use("/api/v1/payments/webhook", express.raw({ type: 'application/json' }), razorpayWebhook);
 app.use("/api/payments/webhook", express.raw({ type: 'application/json' }), razorpayWebhook);
 
-// Global API Rate Limiter (L3: ~300 req / 15 min / IP)
+// Catalog reads get their own higher limiter (2000 / 15 min / IP) so a
+// shared IP does not block browsing; globalLimiter still guards the rest.
+app.use("/api/catalog", catalogLimiter);
 app.use("/api", globalLimiter);
 
 app.use(express.json({ limit: "10mb" }));

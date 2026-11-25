@@ -141,12 +141,28 @@ export const globalLimiter = rateLimit({
     // Never set DISABLE_RATE_LIMIT=true on Render/production.
     if (process.env.DISABLE_RATE_LIMIT === "true") return true;
     const url = req.originalUrl || req.url || '';
-    if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health')) {
+    if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health') || url.startsWith('/api/catalog')) {
       return true;
     }
     return false;
   },
   store: getRateLimitStore("global_api", true),
+  message: rateLimitResponse("Too many requests from this network, please try again later."),
+});
+
+// L3: Catalog read limiter — public, read-only, cache-served endpoints
+// (/api/catalog/*: 2000 requests / 15 min / IP, fail-closed).
+// Catalog reads are cheap (~1-2ms cache hits) and public, so they get a
+// higher cap than the global 300 — a shared IP (college WiFi, office NAT)
+// must not block legitimate browsing. Sensitive endpoints keep their own
+// strict limiters and are unaffected.
+export const catalogLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  store: getRateLimitStore("catalog_api", true),
   message: rateLimitResponse("Too many requests from this network, please try again later."),
 });
 
