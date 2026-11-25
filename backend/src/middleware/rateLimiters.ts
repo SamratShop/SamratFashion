@@ -17,7 +17,7 @@ export const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("login_ip", true),
   message: rateLimitResponse("Too many login attempts, please try again later."),
 });
@@ -50,7 +50,7 @@ export const registerLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("register_ip", true),
   message: rateLimitResponse(
     "Too many accounts created from this network, please try again later."
@@ -137,9 +137,9 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Local load-test bypass — ONLY when explicitly enabled in local .env.
+    // Local load-test bypass — ONLY when explicitly enabled with NODE_ENV=development in local .env.
     // Never set DISABLE_RATE_LIMIT=true on Render/production.
-    if (process.env.DISABLE_RATE_LIMIT === "true") return true;
+    if (process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true") return true;
     const url = req.originalUrl || req.url || '';
     if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health') || url.startsWith('/api/catalog')) {
       return true;
@@ -161,7 +161,7 @@ export const catalogLimiter = rateLimit({
   max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("catalog_api", true),
   message: rateLimitResponse("Too many requests from this network, please try again later."),
 });
@@ -182,7 +182,7 @@ export const orderLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("order_create", true),
   message: rateLimitResponse("Too many order creation requests, please try again later."),
 });
@@ -193,7 +193,7 @@ export const paymentLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("payment_op", true),
   message: rateLimitResponse("Too many payment operations, please try again later."),
 });

@@ -44,6 +44,7 @@ export const validateProductionEnv = (): void => {
       { name: "ALLOW_PAYMENT_MOCK", value: process.env.ALLOW_PAYMENT_MOCK },
       { name: "ALLOW_AUTH_MOCK", value: process.env.ALLOW_AUTH_MOCK },
       { name: "ALLOW_EMAIL_MOCK", value: process.env.ALLOW_EMAIL_MOCK },
+      { name: "DISABLE_RATE_LIMIT", value: process.env.DISABLE_RATE_LIMIT },
     ];
 
     for (const flag of mockFlags) {
