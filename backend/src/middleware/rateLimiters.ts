@@ -49,6 +49,7 @@ export const registerLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("register_ip", true),
   message: rateLimitResponse(
     "Too many accounts created from this network, please try again later."
