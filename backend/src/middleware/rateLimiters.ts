@@ -164,6 +164,7 @@ export const orderLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("order_create", true),
   message: rateLimitResponse("Too many order creation requests, please try again later."),
 });
@@ -174,6 +175,7 @@ export const paymentLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("payment_op", true),
   message: rateLimitResponse("Too many payment operations, please try again later."),
 });
