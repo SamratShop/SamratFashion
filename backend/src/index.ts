@@ -30,7 +30,8 @@ import healthRoutes from "./routes/healthRoutes";
 import opsRoutes from "./routes/opsRoutes";
 
 import { validateProductionEnv, validateMandatorySecrets, isStrictProductionOrStaging } from "./config/env";
-import { globalLimiter, catalogLimiter } from "./middleware/rateLimiters";
+import { globalLimiter, catalogLimiter, webhookLimiter } from "./middleware/rateLimiters";
+import { cookieOriginGuard } from "./middleware/cookieOriginGuard";
 import { requireBulkOrderEnabled } from "./config/features";
 import { startOrderExpiryScheduler, stopOrderExpiryScheduler } from "./services/orderExpiryService";
 import { startLogCleanupScheduler, stopLogCleanupScheduler } from "./services/logCleanupService";
@@ -104,13 +105,29 @@ app.use(cors({
 
 // Webhook routes need raw body before standard JSON parsing
 app.use("/api/webhooks", express.raw({ type: 'application/json' }), webhookRoutes);
-app.use("/api/v1/payments/webhook", express.raw({ type: 'application/json' }), razorpayWebhook);
-app.use("/api/payments/webhook", express.raw({ type: 'application/json' }), razorpayWebhook);
+app.use("/api/v1/payments/webhook", express.raw({ type: 'application/json' }), webhookLimiter, razorpayWebhook);
+app.use("/api/payments/webhook", express.raw({ type: 'application/json' }), webhookLimiter, razorpayWebhook);
 
 // Catalog reads get their own higher limiter (2000 / 15 min / IP) so a
 // shared IP does not block browsing; globalLimiter still guards the rest.
 app.use("/api/catalog", catalogLimiter);
 app.use("/api", globalLimiter);
+
+// CSRF guard for cookie-authenticated mutations (N-M4, extended beyond /api/auth).
+// Webhooks are server-to-server (no browser Origin) and are excluded here;
+// they are signature-verified and rate-limited separately (see Fix B).
+app.use("/api", (req, res, next) => {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
+  const url = req.originalUrl || req.url || "";
+  if (
+    url.startsWith("/api/webhooks") ||
+    url.startsWith("/api/v1/payments/webhook") ||
+    url.startsWith("/api/payments/webhook")
+  ) {
+    return next();
+  }
+  return cookieOriginGuard(req, res, next);
+});
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
