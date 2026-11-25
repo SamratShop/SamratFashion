@@ -17,6 +17,7 @@ export const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("login_ip", true),
   message: rateLimitResponse("Too many login attempts, please try again later."),
 });
