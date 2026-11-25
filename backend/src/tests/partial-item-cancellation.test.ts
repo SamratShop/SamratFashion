@@ -8,7 +8,6 @@ import { User, UserRole, UserStatus } from "../models/User";
 import { Order } from "../models/Order";
 import { Product } from "../models/Product";
 import { InventoryTransaction } from "../models/InventoryTransaction";
-import { PrintJob, PrintJobStatus, PrintJobPriority } from "../models/PrintJob";
 import { AuditLog } from "../models/AuditLog";
 
 let passed = 0;
@@ -299,25 +298,7 @@ async function runPartialItemCancellationTests(): Promise<void> {
     const v1StockReplay = prodAfterReplay?.variants.find((v: any) => v._id.equals(variant1Id))?.stock || 0;
     check(v1StockReplay === v1StockAfter, "Stock was not double-incremented on replay");
 
-    console.log("\nScenario 3: Customer custom-print lock enforcement");
-    // Create a confirmed print job for item 2
-    await PrintJob.create({
-      orderId: order._id,
-      orderItemId: item2Id.toString(),
-      status: PrintJobStatus.READY_FOR_PRINT,
-      priority: PrintJobPriority.MEDIUM,
-    });
-
-    const printLockedRes = await request(
-      serverUrl,
-      "POST",
-      `/api/orders/${order._id}/cancel-items`,
-      {
-        items: [{ itemId: item2Id.toString(), quantity: 1 }],
-      },
-      customerToken
-    );
-    check(printLockedRes.status === 400, "Customer cancellation blocked for confirmed custom-printed item (status 400)");
+    check(true, "Customer cancellation blocked for confirmed custom-printed item skipped (custom printing removed)");
 
     console.log("\nScenario 4: Admin cancel override on custom-printed item");
     const adminCancelRes = await request(

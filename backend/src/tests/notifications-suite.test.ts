@@ -1,0 +1,555 @@
+/**
+ * Comprehensive Notifications & Web Push Test Suite
+ * Covers:
+ * 1. Admin Live Order Poll Endpoint (/api/admin/orders/poll)
+ * 2. Customer In-App Notification Bell & Security Boundary (/api/notifications)
+ * 3. Web Push Subscription Management (/api/notifications/push/*)
+ * 4. Scheduled Admin Order Digest Endpoint & Idempotency (/api/ops/notifications/digest)
+ */
+
+process.env.NODE_ENV = 'test';
+process.env.RAZORPAY_KEY_ID = 'rzp_test_mock';
+process.env.RAZORPAY_KEY_SECRET = 'mock_secret_test';
+process.env.RAZORPAY_WEBHOOK_SECRET = 'mock_webhook_secret_test';
+process.env.ALLOW_PAYMENT_MOCK = 'true';
+process.env.DIGEST_CRON_SECRET = 'test_cron_secret_12345678';
+process.env.OPS_SECRET = 'test_ops_secret_at_least_16_chars';
+process.env.JWT_SECRET = 'test_jwt_secret_for_tokens_at_least_32_characters';
+
+import http from 'http';
+import { AddressInfo } from 'net';
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { getJwtAccessSecret } from '../config/env';
+import { app } from '../index';
+import { connectSafeTestDb } from './testHelpers';
+import { User, UserRole, UserStatus } from '../models/User';
+import { Order } from '../models/Order';
+import { NotificationLog } from '../models/NotificationLog';
+import { PushSubscription } from '../models/PushSubscription';
+import { NotificationDigestState } from '../models/NotificationDigestState';
+import { notificationService } from '../services/notifications/notificationService';
+
+let passed = 0;
+let failed = 0;
+const failures: string[] = [];
+
+function check(condition: boolean, desc: string, detail?: string): void {
+  if (condition) {
+    passed++;
+    console.log(`  PASS: ${desc}`);
+  } else {
+    failed++;
+    const message = detail ? `${desc} — ${detail}` : desc;
+    failures.push(message);
+    console.error(`  FAIL: ${message}`);
+  }
+}
+
+interface HttpResult {
+  status: number;
+  body: any;
+  raw: string;
+}
+
+async function request(
+  baseUrl: string,
+  path: string,
+  options: { method?: string; headers?: Record<string, string>; body?: unknown } = {}
+): Promise<HttpResult> {
+  const headers: Record<string, string> = { ...(options.headers || {}) };
+  let payload: string | undefined;
+
+  if (options.body !== undefined) {
+    payload = JSON.stringify(options.body);
+    headers['Content-Type'] = 'application/json';
+    headers['Content-Length'] = Buffer.byteLength(payload).toString();
+  }
+
+  return new Promise<HttpResult>((resolve, reject) => {
+    const url = new URL(path, baseUrl);
+    const req = http.request(
+      url,
+      {
+        method: options.method || 'GET',
+        headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          const raw = Buffer.concat(chunks).toString('utf8');
+          let parsedBody: any = null;
+          try {
+            parsedBody = JSON.parse(raw);
+          } catch {
+            parsedBody = raw;
+          }
+          resolve({
+            status: res.statusCode || 0,
+            body: parsedBody,
+            raw,
+          });
+        });
+      }
+    );
+
+    req.on('error', reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+function createToken(userId: string, role: string): string {
+  const secret = getJwtAccessSecret();
+  return jwt.sign({ sub: userId, role }, secret, { algorithm: 'HS256', expiresIn: '1h' });
+}
+
+async function runNotificationsSuite() {
+  console.log('╔════════════════════════════════════════════════════════════════╗');
+  console.log('║  Notifications & Web Push Verification Suite                  ║');
+  console.log('╚════════════════════════════════════════════════════════════════╝\n');
+
+  await connectSafeTestDb();
+
+  // Spin up test HTTP server
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const port = (server.address() as AddressInfo).port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    // 1. Create Test Fixtures: Admin User, Customer A, Customer B
+    const adminUser: any = await User.create({
+      name: 'Admin Test',
+      email: `admin_${Date.now()}@test.com`,
+      passwordHash: 'Password123!',
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+    const customerA: any = await User.create({
+      name: 'Customer A',
+      email: `customerA_${Date.now()}@test.com`,
+      passwordHash: 'Password123!',
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+    const customerB: any = await User.create({
+      name: 'Customer B',
+      email: `customerB_${Date.now()}@test.com`,
+      passwordHash: 'Password123!',
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+
+    const adminToken = createToken(adminUser._id.toString(), 'ADMIN');
+    const customerAToken = createToken(customerA._id.toString(), 'CUSTOMER');
+    const customerBToken = createToken(customerB._id.toString(), 'CUSTOMER');
+
+    console.log('[1. Testing Admin Live Order Poll Endpoint]');
+    // 1.1 Unauthenticated poll is rejected
+    const unauthPoll = await request(baseUrl, '/api/admin/orders/poll');
+    check(unauthPoll.status === 401, '1.1 Unauthenticated poll is rejected with 401');
+
+    // 1.2 Customer role poll is forbidden
+    const customerPoll = await request(baseUrl, '/api/admin/orders/poll', {
+      headers: { Authorization: `Bearer ${customerAToken}` },
+    });
+    check(customerPoll.status === 403, '1.2 Customer accessing admin poll is rejected with 403');
+
+    // 1.3 Admin poll returns orderCount and latest order metadata
+    const adminPoll = await request(baseUrl, '/api/admin/orders/poll', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    check(
+      adminPoll.status === 200 && adminPoll.body?.success === true && typeof adminPoll.body?.data?.orderCount === 'number',
+      '1.3 Admin poll returns 200 with orderCount'
+    );
+
+    console.log('\n[2. Testing Customer In-App Notification Bell & Security Boundary]');
+    // 2.1 Trigger ORDER_CONFIRMED for Customer A
+    const orderA = await Order.create({
+      orderNumber: `SF-NOTIF-${Date.now()}`,
+      userId: customerA._id,
+      items: [
+        {
+          productId: new mongoose.Types.ObjectId(),
+          variantId: new mongoose.Types.ObjectId(),
+          productName: 'Festive Kurta',
+          productImage: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c',
+          selectedSize: 'M',
+          selectedColor: 'Navy',
+          quantity: 1,
+          unitPrice: 1499,
+          lineTotal: 1499,
+        },
+      ],
+      shippingAddress: {
+        fullName: 'Customer A',
+        phone: '9876543210',
+        addressLine1: '123 Test St',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        postalCode: '400001',
+        country: 'India',
+      },
+      subtotal: 1499,
+      discount: 0,
+      shipping: 0,
+      total: 1499,
+      status: 'CONFIRMED',
+      paymentStatus: 'PAID',
+    });
+
+    await notificationService.notify({
+      eventType: 'ORDER_CONFIRMED',
+      entityType: 'ORDER',
+      entityId: orderA._id,
+      recipientEmail: customerA.email,
+      idempotencyKey: `TEST_CONFIRMED_${orderA._id}`,
+      data: {
+        customerName: customerA.name,
+        orderNumber: orderA.orderNumber,
+        total: orderA.total,
+        userId: customerA._id,
+      },
+    });
+
+    // 2.2 Verify IN_APP log was created
+    const inAppLog = await NotificationLog.findOne({
+      entityId: orderA._id,
+      channel: 'IN_APP',
+    });
+    check(Boolean(inAppLog), '2.1 IN_APP channel notification log was created');
+    check(Boolean(inAppLog?.title?.includes(orderA.orderNumber)), '2.2 Notification title contains order number');
+    check(inAppLog?.read === false, '2.3 In-app notification initially marked read=false');
+
+    // 2.3 Customer A fetches their notifications
+    const notifA = await request(baseUrl, '/api/notifications', {
+      headers: { Authorization: `Bearer ${customerAToken}` },
+    });
+    check(
+      notifA.status === 200 &&
+        notifA.body?.data?.unreadCount >= 1 &&
+        notifA.body?.data?.notifications?.some((n: any) => n._id === inAppLog?._id.toString()),
+      '2.4 Customer A sees their notification with unreadCount >= 1'
+    );
+
+    // 2.4 Strict Customer Privacy Boundary: Customer B CANNOT see Customer A's notification
+    const notifB = await request(baseUrl, '/api/notifications', {
+      headers: { Authorization: `Bearer ${customerBToken}` },
+    });
+    const leaked = notifB.body?.data?.notifications?.some((n: any) => n._id === inAppLog?._id.toString());
+    check(!leaked, '2.5 Customer B cannot see Customer A notifications (no cross-tenant leakage)');
+
+    // 2.5 Mark as read
+    const markReadRes = await request(baseUrl, '/api/notifications/mark-read', {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${customerAToken}` },
+    });
+    check(markReadRes.status === 200 && markReadRes.body?.data?.unreadCount === 0, '2.6 Mark-as-read clears unread count');
+
+    const updatedLog = await NotificationLog.findById(inAppLog?._id);
+    check(updatedLog?.read === true && Boolean(updatedLog?.readAt), '2.7 Database log reflects read=true with timestamp');
+
+    console.log('\n[3. Testing Web Push Subscription Endpoints]');
+    // 3.1 Public key endpoint
+    const pubKeyRes = await request(baseUrl, '/api/notifications/push/public-key');
+    check(pubKeyRes.status === 200 && typeof pubKeyRes.body?.data?.publicKey === 'string', '3.1 VAPID public key endpoint returns 200');
+
+    // 3.2 Subscribe endpoint (requires authentication)
+    const unauthSub = await request(baseUrl, '/api/notifications/push/subscribe', {
+      method: 'POST',
+      body: {
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-token-123',
+        keys: { p256dh: 'test-p256dh-key', auth: 'test-auth-key' },
+      },
+    });
+    check(unauthSub.status === 401, '3.2 Unauthenticated push subscription rejected with 401');
+
+    // 3.3 Customer A subscribes
+    const subRes = await request(baseUrl, '/api/notifications/push/subscribe', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customerAToken}` },
+      body: {
+        endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/test-token-a',
+        keys: { p256dh: 'test-p256dh-sample-a', auth: 'test-auth-sample-a' },
+      },
+    });
+    check(subRes.status === 200 && subRes.body?.success === true, '3.3 Customer A registers push subscription successfully');
+
+    const savedSub = await PushSubscription.findOne({ userId: customerA._id });
+    check(savedSub?.endpoint === 'https://updates.push.services.mozilla.com/wpush/v2/test-token-a', '3.4 Subscription stored in database');
+
+    // 3.4 Admin subscribes (role is ADMIN)
+    const adminSubRes = await request(baseUrl, '/api/notifications/push/subscribe', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: {
+        endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/test-admin-device',
+        keys: { p256dh: 'test-p256dh-admin', auth: 'test-auth-admin' },
+      },
+    });
+    check(adminSubRes.status === 200, '3.5 Admin registers push subscription');
+    const savedAdminSub = await PushSubscription.findOne({ userId: adminUser._id });
+    check(savedAdminSub?.role === 'ADMIN', '3.6 Admin subscription recorded with role=ADMIN');
+
+    // 3.5 Push status endpoint
+    const statusRes = await request(baseUrl, '/api/notifications/push/status', {
+      headers: { Authorization: `Bearer ${customerAToken}` },
+    });
+    check(statusRes.body?.data?.isSubscribed === true, '3.7 Push status returns isSubscribed=true');
+
+    // 3.6 Unsubscribe endpoint
+    const unsubRes = await request(baseUrl, '/api/notifications/push/unsubscribe', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customerAToken}` },
+      body: { endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/test-token-a' },
+    });
+    check(unsubRes.status === 200, '3.8 Unsubscribe returns 200');
+    const remainingSub = await PushSubscription.findOne({ userId: customerA._id });
+    check(remainingSub === null, '3.9 Subscription was removed from database');
+
+    console.log('\n[4. Testing Admin Scheduled Digest Endpoint & Idempotency]');
+    // 4.1 Missing secret rejected
+    const unauthDigest = await request(baseUrl, '/api/ops/notifications/digest', {
+      method: 'POST',
+    });
+    check(unauthDigest.status === 401, '4.1 Digest endpoint without secret rejected with 401');
+
+    // 4.2 Wrong secret rejected
+    const wrongDigest = await request(baseUrl, '/api/ops/notifications/digest', {
+      method: 'POST',
+      headers: { 'x-cron-secret': 'invalid_secret_key' },
+    });
+    check(wrongDigest.status === 401, '4.2 Digest endpoint with wrong secret rejected with 401');
+
+    // 4.3 Clean digest state & create a new test order for digest
+    await NotificationDigestState.deleteMany({});
+    const digestOrder = await Order.create({
+      orderNumber: `SF-DIGEST-${Date.now()}`,
+      userId: customerB._id,
+      items: [
+        {
+          productId: new mongoose.Types.ObjectId(),
+          variantId: new mongoose.Types.ObjectId(),
+          productName: 'Silk Nehru Jacket',
+          productImage: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c',
+          selectedSize: 'L',
+          selectedColor: 'Beige',
+          quantity: 1,
+          unitPrice: 2999,
+          lineTotal: 2999,
+        },
+      ],
+      shippingAddress: {
+        fullName: 'Customer B',
+        phone: '9876543211',
+        addressLine1: '456 Test Lane',
+        city: 'Delhi',
+        state: 'Delhi',
+        postalCode: '110001',
+        country: 'India',
+      },
+      subtotal: 2999,
+      discount: 0,
+      shipping: 0,
+      total: 2999,
+      status: 'CONFIRMED',
+      paymentStatus: 'PAID',
+    });
+
+    // 4.4 Authorized digest execution collects the order
+    const digestRes1 = await request(baseUrl, '/api/ops/notifications/digest', {
+      method: 'POST',
+      headers: { 'x-cron-secret': process.env.DIGEST_CRON_SECRET || 'test_cron_secret_12345678' },
+    });
+    check(
+      digestRes1.status === 200 &&
+        digestRes1.body?.ordersCount >= 1 &&
+        digestRes1.body?.orderNumbers?.includes(digestOrder.orderNumber),
+      '4.3 Valid digest cron collects new orders and returns 200'
+    );
+
+    // 4.5 Immediate retry / idempotent execution returns 0 new orders
+    const digestRes2 = await request(baseUrl, '/api/ops/notifications/digest', {
+      method: 'POST',
+      headers: { 'x-cron-secret': process.env.DIGEST_CRON_SECRET || 'test_cron_secret_12345678' },
+    });
+    check(
+      digestRes2.status === 200 && digestRes2.body?.ordersCount === 0,
+      '4.4 Immediate retry reports 0 new orders (idempotent digest — no duplicate pushes)'
+    );
+
+    // 4.6 Verify state persisted in DB
+    const stateDoc = await NotificationDigestState.findOne({ key: 'admin_order_digest' });
+    check(Boolean(stateDoc?.lastDigestAt), '4.5 NotificationDigestState persisted lastDigestAt timestamp in database');
+
+    console.log('\n[5. Lifecycle Events Integration]');
+    // 5.1 ORDER_SHIPPED creates IN_APP record
+    await notificationService.notify({
+      eventType: 'ORDER_SHIPPED',
+      entityType: 'ORDER',
+      entityId: orderA._id,
+      recipientEmail: customerA.email,
+      idempotencyKey: `TEST_SHIPPED_${orderA._id}`,
+      data: {
+        customerName: customerA.name,
+        orderNumber: orderA.orderNumber,
+        carrier: 'BlueDart Express',
+        trackingNumber: 'BD123456789IN',
+        userId: customerA._id,
+      },
+    });
+
+    const shippedLog = await NotificationLog.findOne({
+      entityId: orderA._id,
+      eventType: 'ORDER_SHIPPED',
+      channel: 'IN_APP',
+    });
+    check(Boolean(shippedLog), '5.1 ORDER_SHIPPED event creates customer IN_APP log');
+    check(Boolean(shippedLog?.message?.includes('BlueDart Express')), '5.2 Shipped message includes carrier info');
+
+    // 5.2 REFUND_PROCESSED creates IN_APP record
+    await notificationService.notify({
+      eventType: 'REFUND_PROCESSED',
+      entityType: 'ORDER',
+      entityId: orderA._id,
+      recipientEmail: customerA.email,
+      idempotencyKey: `TEST_REFUND_${orderA._id}`,
+      data: {
+        customerName: customerA.name,
+        orderNumber: orderA.orderNumber,
+        amount: 1499,
+        refundId: 'rfnd_test_123',
+        userId: customerA._id,
+      },
+    });
+
+    const refundLog = await NotificationLog.findOne({
+      entityId: orderA._id,
+      eventType: 'REFUND_PROCESSED',
+      channel: 'IN_APP',
+    });
+    check(Boolean(refundLog), '5.3 REFUND_PROCESSED event creates customer IN_APP log');
+    check(Boolean(refundLog?.message?.includes('1499')), '5.4 Refund message contains refunded amount');
+
+    console.log('\n[6. Immediate Admin Push Per Order Verification]');
+    // 6.1 Test buildAdminPushContent payload generation
+    const contentConfirmed = await notificationService.buildAdminPushContent('ORDER_CONFIRMED', orderA._id.toString(), {
+      orderNumber: orderA.orderNumber,
+      total: 1499,
+    });
+    check(
+      contentConfirmed?.url === '/admin/orders' &&
+        contentConfirmed.title.includes(orderA.orderNumber) &&
+        contentConfirmed.body.includes('1,499'),
+      '6.1 ORDER_CONFIRMED admin push content has correct title, body with total, and url /admin/orders'
+    );
+
+    const contentShipped = await notificationService.buildAdminPushContent('ORDER_SHIPPED', orderA._id.toString(), {
+      orderNumber: orderA.orderNumber,
+      carrier: 'BlueDart Express',
+      total: 1499,
+    });
+    check(
+      contentShipped?.url === '/admin/orders' &&
+        contentShipped.body.includes('BlueDart Express') &&
+        contentShipped.body.includes('1,499'),
+      '6.2 ORDER_SHIPPED admin push content includes carrier and total'
+    );
+
+    const contentDelivered = await notificationService.buildAdminPushContent('ORDER_DELIVERED', orderA._id.toString(), {
+      orderNumber: orderA.orderNumber,
+      total: 1499,
+    });
+    check(
+      contentDelivered?.url === '/admin/orders' &&
+        contentDelivered.body.includes('delivered') &&
+        contentDelivered.body.includes('1,499'),
+      '6.3 ORDER_DELIVERED admin push content includes status and total'
+    );
+
+    const contentCancelled = await notificationService.buildAdminPushContent('ORDER_CANCELLED', orderA._id.toString(), {
+      orderNumber: orderA.orderNumber,
+      total: 1499,
+    });
+    check(
+      contentCancelled?.url === '/admin/orders' &&
+        contentCancelled.body.includes('cancelled') &&
+        contentCancelled.body.includes('1,499'),
+      '6.4 ORDER_CANCELLED admin push content includes status and total'
+    );
+
+    const contentRefund = await notificationService.buildAdminPushContent('REFUND_PROCESSED', orderA._id.toString(), {
+      orderNumber: orderA.orderNumber,
+      amount: 1499,
+    });
+    check(
+      contentRefund?.url === '/admin/orders' &&
+        contentRefund.body.includes('Refund of') &&
+        contentRefund.body.includes('1,499'),
+      '6.5 REFUND_PROCESSED admin push content includes refund amount'
+    );
+
+    const nonOrderContent = await notificationService.buildAdminPushContent('EMAIL_VERIFICATION', orderA._id.toString(), {});
+    check(nonOrderContent === null, '6.6 Non-order event produces null admin push content (no unwanted push)');
+
+    // 6.7 Resilient database fallback when total is omitted from data
+    const fallbackContent = await notificationService.buildAdminPushContent('ORDER_CONFIRMED', orderA._id.toString(), {});
+    check(
+      Boolean(fallbackContent?.title.includes(orderA.orderNumber)),
+      '6.7 Database fallback resolves order details when omitted from data payload'
+    );
+
+    // 6.8 Mock/track webPushService to verify immediate admin push delivery
+    const { webPushService } = require('../services/notifications/webPushService');
+    const originalSendPushToUser = webPushService.sendPushToUser.bind(webPushService);
+    let capturedAdminPush: any = null;
+    webPushService.sendPushToUser = async (targetUserId: any, payload: any) => {
+      if (targetUserId.toString() === adminUser._id.toString()) {
+        capturedAdminPush = { userId: targetUserId.toString(), payload };
+      }
+      return { sent: 1, failed: 0, unregistered: 0 };
+    };
+
+    try {
+      await notificationService.sendAdminImmediatePush('ORDER_CONFIRMED', orderA._id.toString(), {
+        orderNumber: orderA.orderNumber,
+        total: 1499,
+      });
+
+      check(
+        capturedAdminPush !== null &&
+          capturedAdminPush.userId === adminUser._id.toString() &&
+          capturedAdminPush.payload.url === '/admin/orders' &&
+          capturedAdminPush.payload.title.includes(orderA.orderNumber),
+        '6.8 sendAdminImmediatePush dispatches immediate push to subscribed admin with /admin/orders URL'
+      );
+    } finally {
+      webPushService.sendPushToUser = originalSendPushToUser;
+    }
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await mongoose.disconnect();
+  }
+
+  console.log('\n════════════════════════════════════════════════════════════════');
+  console.log(`Results: ${passed} passed, ${failed} failed`);
+  console.log('════════════════════════════════════════════════════════════════');
+
+  if (failed > 0) {
+    process.exit(1);
+  }
+}
+
+runNotificationsSuite().catch((err) => {
+  console.error('Fatal test error:', err);
+  process.exit(1);
+});

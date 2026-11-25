@@ -52,3 +52,53 @@ export const requireOpsSecret = (req: Request, res: Response, next: NextFunction
 
   next();
 };
+
+/**
+ * Shared-secret gate for notifications digest cron.
+ * Accepts secret via:
+ * - Header: `x-cron-secret` (as specified for cron-job.org)
+ * - Header: `x-ops-secret`
+ * - Header: `authorization: Bearer <secret>`
+ *
+ * Configured via env: `DIGEST_CRON_SECRET` or `OPS_SECRET` (fallback).
+ */
+export const requireDigestCronSecret = (req: Request, res: Response, next: NextFunction): void => {
+  const configured = (process.env.DIGEST_CRON_SECRET || process.env.OPS_SECRET || '').trim();
+  if (configured.length < 8) {
+    res.status(503).json({
+      success: false,
+      code: 'DIGEST_SECRET_NOT_CONFIGURED',
+      message: 'Set DIGEST_CRON_SECRET or OPS_SECRET (minimum 8 characters) to enable notifications digest endpoint.',
+    });
+    return;
+  }
+
+  const cronHeader = req.header('x-cron-secret');
+  const opsHeader = req.header('x-ops-secret');
+  const authorization = req.header('authorization') || '';
+  const bearer = authorization.toLowerCase().startsWith('bearer ')
+    ? authorization.slice(7).trim()
+    : '';
+
+  const provided = (cronHeader || opsHeader || bearer || '').trim();
+  const providedBuffer = Buffer.from(provided, 'utf8');
+  const configuredBuffer = Buffer.from(configured, 'utf8');
+
+  const comparisonLength = Math.max(providedBuffer.length, configuredBuffer.length, 1);
+  const providedPadded = Buffer.alloc(comparisonLength);
+  const configuredPadded = Buffer.alloc(comparisonLength);
+  providedBuffer.copy(providedPadded);
+  configuredBuffer.copy(configuredPadded);
+  const secretsMatch = crypto.timingSafeEqual(providedPadded, configuredPadded);
+
+  if (providedBuffer.length !== configuredBuffer.length || !secretsMatch) {
+    res.status(401).json({
+      success: false,
+      code: 'UNAUTHORIZED',
+      message: 'Invalid or missing x-cron-secret header.',
+    });
+    return;
+  }
+
+  next();
+};

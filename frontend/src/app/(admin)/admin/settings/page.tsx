@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { invalidateStoreSettingsCache } from "@/lib/useStoreSettings";
-import { IndianRupee, Truck, RotateCcw, Info } from "lucide-react";
+import { IndianRupee, Truck, RotateCcw, Info, Bell, BellOff } from "lucide-react";
+import {
+  subscribeToPush,
+  unsubscribeFromPush,
+  isSubscribedToPush,
+  isPushSupported,
+} from "@/lib/pushNotifications";
 
 interface StoreSettings {
   freeShippingThreshold: number;
@@ -28,6 +34,36 @@ export default function AdminStoreSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+
+  useEffect(() => {
+    setPushSupported(isPushSupported());
+    isSubscribedToPush().then((sub) => setIsPushSubscribed(sub)).catch(() => {});
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (isPushSubscribed) {
+        await unsubscribeFromPush();
+        setIsPushSubscribed(false);
+      } else {
+        const res = await subscribeToPush();
+        if (res.success) {
+          setIsPushSubscribed(true);
+        } else {
+          alert(res.error || "Failed to enable browser notifications");
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || "Notification error");
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -324,6 +360,46 @@ export default function AdminStoreSettingsPage() {
             </p>
           )}
         </aside>
+      </div>
+
+      {/* Push Notifications (Immediate Admin Pushes) */}
+      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4" />
+              </span>
+              <h2 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface">
+                Desktop Push Notifications (Immediate)
+              </h2>
+            </div>
+            <p className="font-body-sm text-xs text-on-surface-variant max-w-2xl leading-relaxed pt-1">
+              You get an instant push for every new order and status change. Once enabled, alerts reach this device even when the admin dashboard tab is closed (browser running in background). A scheduled digest endpoint exists as a dormant fallback if high-volume batching is ever needed.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleTogglePush}
+            disabled={pushLoading || !pushSupported}
+            className={`min-h-[42px] px-5 py-2.5 rounded-lg font-mono text-xs uppercase font-bold tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 ${
+              isPushSubscribed
+                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                : "bg-surface border border-outline-variant hover:border-primary text-on-surface"
+            }`}
+          >
+            {isPushSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4 text-neutral-400" />}
+            <span>{pushLoading ? "Updating..." : isPushSubscribed ? "Push Active (Subscribed)" : "Enable Push Notifications"}</span>
+          </button>
+        </div>
+        <div className="text-[11px] font-mono text-on-surface-variant flex items-center gap-2 pt-2 border-t border-outline-variant/20">
+          <span className={`w-2 h-2 rounded-full ${isPushSubscribed ? "bg-emerald-500" : "bg-neutral-400"} inline-block`} />
+          <span>
+            {isPushSubscribed
+              ? "This device is registered for immediate order pushes via self-hosted VAPID push infrastructure (₹0 cost)."
+              : "Click above to register this browser for immediate order pushes."}
+          </span>
+        </div>
       </div>
     </div>
   );

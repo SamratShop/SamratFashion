@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 import { NotificationLog, NotificationChannel, NotificationStatus } from '../../models/NotificationLog';
 import { Order } from '../../models/Order';
 import { User } from '../../models/User';
+import { PushSubscription } from '../../models/PushSubscription';
 import { getEmailProvider, SendEmailOptions, SendEmailResult } from './emailProviders';
+import { webPushService } from './webPushService';
 import {
   getOrderConfirmationTemplate,
   getPaymentSuccessTemplate,
@@ -144,6 +146,19 @@ export class NotificationService {
         { upsert: true, returnDocument: 'after' }
       );
 
+      // 5. In-App Notification and Customer Web Push Dispatch (Fail-safe)
+      await this.dispatchInAppAndPush({
+        eventType,
+        entityType,
+        entityId,
+        recipientEmail,
+        recipientPhone,
+        data,
+        idempotencyKey,
+      }).catch((inAppErr) => {
+        console.warn('[NotificationService] In-app/push dispatch skipped or failed:', inAppErr);
+      });
+
       console.log(`[NotificationService] Notification dispatched: ${eventType} -> ${maskRecipientEmail(recipientEmail)} [Status: ${status}]`);
       return {
         success: result.success,
@@ -230,6 +245,297 @@ export class NotificationService {
           subject: `Revision Requested — Order #${data.orderNumber || ''}`,
           html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Revision Requested</h2><p>The customer requested changes for order <strong>#${escapeHtml(data.orderNumber || '')}</strong>.</p><p><strong>Customer Note:</strong> ${escapeHtml(data.note || 'No note provided')}</p></div>`,
           text: `Revision Requested for Order #${data.orderNumber || ''}. Note: ${data.note || ''}`
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Internal helper to create in-app notification records and dispatch immediate customer web pushes.
+   * Fail-Safe: Catches and logs errors without bubbling up to callers.
+   */
+  private async dispatchInAppAndPush(options: {
+    eventType: string;
+    entityType: string;
+    entityId: string | mongoose.Types.ObjectId;
+    recipientEmail: string;
+    recipientPhone?: string;
+    data: Record<string, any>;
+    idempotencyKey: string;
+  }): Promise<void> {
+    const { eventType, entityType, entityId, recipientEmail, data, idempotencyKey } = options;
+
+    const inAppContent = this.buildInAppContent(eventType, entityId.toString(), data);
+    if (!inAppContent) {
+      return;
+    }
+
+    // Resolve customer userId
+    let userId: mongoose.Types.ObjectId | undefined = undefined;
+    if (data.userId && mongoose.Types.ObjectId.isValid(data.userId)) {
+      userId = new mongoose.Types.ObjectId(data.userId.toString());
+    } else if (entityType.toUpperCase() === 'ORDER') {
+      const order = await Order.findById(entityId).select('userId').lean();
+      if (order && (order as any).userId) {
+        userId = new mongoose.Types.ObjectId((order as any).userId.toString());
+      }
+    }
+
+    if (!userId) {
+      const user = await User.findOne({ email: recipientEmail }).select('_id').lean();
+      if (user) {
+        userId = new mongoose.Types.ObjectId((user as any)._id.toString());
+      }
+    }
+
+    const inAppIdempotencyKey = `${idempotencyKey}:IN_APP`;
+
+    // 1. Write IN_APP notification record in NotificationLog
+    await NotificationLog.findOneAndUpdate(
+      { idempotencyKey: inAppIdempotencyKey },
+      {
+        eventType,
+        entityType,
+        entityId: new mongoose.Types.ObjectId(entityId.toString()),
+        recipientEmail,
+        userId,
+        channel: 'IN_APP',
+        status: 'SENT',
+        provider: 'in_app',
+        title: inAppContent.title,
+        message: inAppContent.message,
+        link: inAppContent.link,
+        read: false,
+        sentAt: new Date(),
+        idempotencyKey: inAppIdempotencyKey,
+        metadata: data,
+        $inc: { attemptCount: 1 },
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    // 2. Customer Web Push (Immediate, Async non-blocking)
+    if (userId) {
+      webPushService.sendPushToUser(userId, {
+        title: inAppContent.title,
+        body: inAppContent.message,
+        url: inAppContent.link,
+        tag: `sf-${eventType.toLowerCase()}-${entityId.toString()}`,
+        data: {
+          orderId: entityId.toString(),
+          eventType,
+        },
+      }).catch((pushErr) => {
+        console.warn('[NotificationService] Customer web push failed:', pushErr);
+      });
+    }
+
+    // 3. Admin Immediate Web Push (Immediate, Async non-blocking)
+    // Sends immediate push to all opted-in admin devices on order events:
+    // ORDER_CONFIRMED, ORDER_SHIPPED, ORDER_DELIVERED, ORDER_CANCELLED, REFUND_PROCESSED.
+    // Fires asynchronously without awaiting, so it never blocks or slows the request path.
+    this.sendAdminImmediatePush(eventType, entityId.toString(), data).catch((adminPushErr) => {
+      console.warn('[NotificationService] Immediate admin push failed:', adminPushErr);
+    });
+  }
+
+  /**
+   * Builds admin push content for immediate order events.
+   * Content: order number + status + total value.
+   * e.g. "New order #SF-... — ₹X" or "Order #SF-... shipped via <carrier> — ₹X"
+   * Clicking it opens /admin/orders.
+   */
+  public async buildAdminPushContent(
+    eventType: string,
+    entityId: string,
+    data: Record<string, any>
+  ): Promise<{ title: string; body: string; url: string; tag: string } | null> {
+    const adminEvents = new Set([
+      'ORDER_CONFIRMED',
+      'ORDER_CREATED',
+      'ORDER_SHIPPED',
+      'ORDER_DELIVERED',
+      'ORDER_CANCELLED',
+      'REFUND_PROCESSED',
+    ]);
+
+    if (!adminEvents.has(eventType)) {
+      return null;
+    }
+
+    let orderNumber = data.orderNumber;
+    let total = data.total ?? data.amount;
+
+    if ((!orderNumber || total === undefined) && entityId && mongoose.Types.ObjectId.isValid(entityId)) {
+      try {
+        const orderDoc = await Order.findById(entityId).select('orderNumber total').lean();
+        if (orderDoc) {
+          if (!orderNumber) orderNumber = orderDoc.orderNumber;
+          if (total === undefined) total = orderDoc.total;
+        }
+      } catch {
+        // fail-safe ignore
+      }
+    }
+
+    const formattedOrderNum = orderNumber ? `#${orderNumber}` : (entityId ? `#${String(entityId).slice(-6)}` : '');
+    const numTotal = Number(total || 0);
+    const formattedTotal = `₹${numTotal.toLocaleString('en-IN')}`;
+
+    switch (eventType) {
+      case 'ORDER_CONFIRMED':
+      case 'ORDER_CREATED':
+        return {
+          title: `New Order ${formattedOrderNum}`.trim(),
+          body: `New order ${formattedOrderNum} — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-confirmed`,
+        };
+      case 'ORDER_SHIPPED': {
+        const carrierPart = data.carrier ? ` shipped via ${data.carrier}` : ' shipped';
+        return {
+          title: `Order ${formattedOrderNum} Shipped`.trim(),
+          body: `Order ${formattedOrderNum}${carrierPart} — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-shipped`,
+        };
+      }
+      case 'ORDER_DELIVERED':
+        return {
+          title: `Order ${formattedOrderNum} Delivered`.trim(),
+          body: `Order ${formattedOrderNum} delivered — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-delivered`,
+        };
+      case 'ORDER_CANCELLED':
+        return {
+          title: `Order ${formattedOrderNum} Cancelled`.trim(),
+          body: `Order ${formattedOrderNum} cancelled — ${formattedTotal}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-cancelled`,
+        };
+      case 'REFUND_PROCESSED':
+        return {
+          title: `Refund Processed ${formattedOrderNum}`.trim(),
+          body: `Refund of ${formattedTotal} processed for order ${formattedOrderNum}`.trim(),
+          url: '/admin/orders',
+          tag: `admin-order-${entityId}-refund`,
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Dispatches immediate web push to all opted-in admins on order events.
+   * Fail-Safe: Will never throw to caller and runs non-blocking.
+   * Reuses webPushService.sendPushToUser and existing PushSubscription records.
+   */
+  public async sendAdminImmediatePush(
+    eventType: string,
+    entityId: string,
+    data: Record<string, any>
+  ): Promise<void> {
+    try {
+      const adminPushContent = await this.buildAdminPushContent(eventType, entityId, data);
+      if (!adminPushContent) {
+        return;
+      }
+
+      // Find all distinct admin userIds with active subscriptions
+      const adminUserIds = await PushSubscription.distinct('userId', {
+        role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
+      });
+
+      if (!adminUserIds || adminUserIds.length === 0) {
+        return;
+      }
+
+      const orderNumber = data.orderNumber || (entityId ? String(entityId).slice(-6) : '');
+
+      // Send to each opted-in admin user via webPushService.sendPushToUser
+      await Promise.allSettled(
+        adminUserIds.map((adminId) =>
+          webPushService.sendPushToUser(adminId, {
+            title: adminPushContent.title,
+            body: adminPushContent.body,
+            url: adminPushContent.url,
+            tag: adminPushContent.tag,
+            data: {
+              orderId: entityId,
+              orderNumber,
+              eventType,
+              role: 'ADMIN',
+            },
+          })
+        )
+      );
+    } catch (err: unknown) {
+      console.warn(
+        '[NotificationService] Failed to dispatch immediate admin push:',
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+
+  private buildInAppContent(
+    eventType: string,
+    entityId: string,
+    data: any
+  ): { title: string; message: string; link: string } | null {
+    const orderNumber = data.orderNumber || '';
+    const orderLink = `/account/orders/${data.orderId || entityId}`;
+
+    switch (eventType) {
+      case 'ORDER_CONFIRMED':
+      case 'ORDER_CREATED':
+        return {
+          title: `Order Confirmed #${orderNumber}`,
+          message: `Your order for ₹${data.total || data.amount || 0} has been confirmed.`,
+          link: orderLink,
+        };
+      case 'ORDER_SHIPPED':
+        return {
+          title: `Order Shipped #${orderNumber}`,
+          message: `Your order has shipped${data.carrier ? ` via ${data.carrier}` : ''}${data.trackingNumber ? ` (AWB: ${data.trackingNumber})` : ''}.`,
+          link: orderLink,
+        };
+      case 'ORDER_DELIVERED':
+        return {
+          title: `Order Delivered #${orderNumber}`,
+          message: `Your package for order #${orderNumber} has been delivered.`,
+          link: orderLink,
+        };
+      case 'ORDER_CANCELLED':
+        return {
+          title: `Order Cancelled #${orderNumber}`,
+          message: `Your order #${orderNumber} has been cancelled.`,
+          link: orderLink,
+        };
+      case 'REFUND_PROCESSED':
+        return {
+          title: `Refund Processed #${orderNumber}`,
+          message: `Refund of ₹${data.amount || 0} has been processed for order #${orderNumber}.`,
+          link: orderLink,
+        };
+      case 'MOCKUP_SENT':
+        return {
+          title: `Mockup Ready #${orderNumber}`,
+          message: `A custom design mockup is ready for your review.`,
+          link: orderLink,
+        };
+      case 'MOCKUP_APPROVED':
+        return {
+          title: `Mockup Approved #${orderNumber}`,
+          message: `Your design mockup has been approved and moved to production.`,
+          link: orderLink,
+        };
+      case 'MOCKUP_REVISION_REQUESTED':
+        return {
+          title: `Revision Requested #${orderNumber}`,
+          message: `Your revision request for mockup has been submitted.`,
+          link: orderLink,
         };
       default:
         return null;

@@ -10,7 +10,6 @@ import {
 import { BulkQuote, BulkQuoteStatus, IBulkQuote } from "../models/BulkQuote";
 import { Product, ProductStatus } from "../models/Product";
 import { CustomPrintCatalogItem } from "../models/CustomPrintCatalogItem";
-import { CustomDesign } from "../models/CustomDesign";
 import { Order } from "../models/Order";
 import { AppError } from "../utils/AppError";
 import { isCustomDesignEnabled } from "../config/features";
@@ -204,21 +203,9 @@ export const createBulkRequest = async (req: AuthRequest, res: Response, next: N
       resolvedUserId = new mongoose.Types.ObjectId(req.user.id);
     }
 
-    // Verify Custom Design Ownership if provided
-    let verifiedDesignId: mongoose.Types.ObjectId | undefined = undefined;
+    // Custom Design is disabled for this deployment
     if (customDesignId) {
-      if (!mongoose.Types.ObjectId.isValid(customDesignId)) {
-        return next(new AppError("Invalid Custom Design ID", 400));
-      }
-      const designQuery: Record<string, unknown> = { _id: customDesignId };
-      if (resolvedUserId) {
-        designQuery.userId = resolvedUserId;
-      }
-      const design = await CustomDesign.findOne(designQuery);
-      if (!design) {
-        return next(new AppError("Attached custom design not found or not owned by your account", 400));
-      }
-      verifiedDesignId = design._id as mongoose.Types.ObjectId;
+      return next(new AppError("Custom design features are disabled for this deployment", 400));
     }
 
 
@@ -238,7 +225,7 @@ export const createBulkRequest = async (req: AuthRequest, res: Response, next: N
       totalQuantity,
       colorAllocation: colorAllocation?.trim(),
       customPrintingRequired: customPrintingRequired || false,
-      customDesignId: verifiedDesignId,
+      customDesignId: undefined,
       printLocations: printLocations && printLocations.length > 0 ? printLocations : undefined,
       printMethod: printMethod || "DTF Transfer",
       artworkFiles: artworkFiles || [],
@@ -429,7 +416,6 @@ export const getQuoteById = async (req: AuthRequest, res: Response, next: NextFu
         populate: [
           { path: "productId", select: "name images basePrice description variants" },
           { path: "catalogItemId" },
-          { path: "customDesignId" },
         ],
       })
       .populate("userId", "name email phone");

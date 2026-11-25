@@ -12,14 +12,12 @@ import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { AuditLog } from '../models/AuditLog';
 import { AppError } from '../utils/AppError';
-import { isCustomDesignEnabled } from '../config/features';
 import { catchAsync } from '../utils/catchAsync';
 import { PricingService } from '../services/pricingService';
 import { notificationService } from '../services/notifications/notificationService';
 import { InventoryAllocationService } from '../services/inventory/inventoryAllocationService';
 import { cancelOrderWithRefund, cancelOrderItemsWithRefund } from '../services/orderCancellationService';
 import { calculateShipping, getStoreSettings } from '../services/storeSettingsService';
-import { extractDesignIds, loadOwnedDesignsOrThrow } from '../utils/designOwnership';
 import { reserveCouponForOrder, releaseCouponReservation } from '../services/coupon/couponReservationService';
 import { serializeCustomerReturn } from '../utils/returnSerializer';
 
@@ -106,18 +104,9 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
     throw new AppError('Cart is empty', 400);
   }
 
-  if (!isCustomDesignEnabled() && cart.items.some((item: any) => item.isCustomized || (Array.isArray(item.customConfigurations) && item.customConfigurations.length > 0) || item.customDesignId)) {
+  if (cart.items.some((item: any) => item.isCustomized || (Array.isArray(item.customConfigurations) && item.customConfigurations.length > 0) || item.customDesignId)) {
     throw new AppError('Custom design features are disabled for this deployment', 503, 'CUSTOM_DESIGN_DISABLED');
   }
-
-  // Security: order creation is a second, independent authorization boundary.
-  // Every design referenced by the cart (V2 configurations and the legacy
-  // customDesignId field) must belong to the authenticated customer before any
-  // artwork, instructions or version metadata is read or mutated.
-  const ownedDesigns = await loadOwnedDesignsOrThrow(
-    cart.items.flatMap((item: any) => extractDesignIds(item)),
-    req.user.id
-  );
 
   // 1. Validate Address
   const address = await Address.findOne({ _id: addressId, userId: req.user.id });
@@ -154,21 +143,6 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
       throw new AppError(`Invalid item quantity for ${product.name}`, 400);
     }
 
-    if (item.customConfigurations && item.customConfigurations.length > 0) {
-      for (const config of item.customConfigurations) {
-        // Capture the purchased version from the ownership-verified map only.
-        if (config.designId) {
-          const design = ownedDesigns.get(config.designId.toString());
-          if (!design) {
-            throw new AppError('Design not found or does not belong to you', 403, 'FORBIDDEN');
-          }
-
-          config.purchasedDesignVersion = design.currentVersion;
-          config.approvedDesignVersion = design.approvedVersion || null;
-        }
-      }
-    }
-
     // Re-calculate pricing dynamically
     const snapshot = await PricingService.calculateItemPricing({
       productId: product._id.toString(),
@@ -187,29 +161,8 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
     const snapshotImage = item.customizationSnapshot?.previewImage || product.images[0] || '';
 
     // Resolve raw customer artwork into the order's canonical approval record.
-    const designFiles = [];
-    let customizationNotes: string | undefined;
-    if (item.isCustomized && item.customConfigurations) {
-      for (const config of item.customConfigurations) {
-        if (!config.designId) continue;
-        const design = ownedDesigns.get(config.designId.toString());
-        if (!design) {
-          // Defensive: the cart-level pre-check above should already have
-          // rejected this request without revealing any design data.
-          throw new AppError('Design not found or does not belong to you', 403, 'FORBIDDEN');
-        }
-        customizationNotes = design.instructions || customizationNotes;
-        const artworkUrl = design.artwork?.url || design.previewImage?.front;
-        if (artworkUrl) {
-          designFiles.push({
-            url: artworkUrl,
-            fileType: 'image/png',
-            filename: `${design.name || 'customer-design'}.png`,
-            uploadedAt: design.createdAt || new Date(),
-          });
-        }
-      }
-    }
+    const designFiles: Array<{ url: string; fileType: string; filename?: string; uploadedAt?: Date }> = [];
+    const customizationNotes: string | undefined = undefined;
 
     orderItems.push({
       productId: product._id,
@@ -229,16 +182,6 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
       pricingSnapshot: snapshot,
       designFiles,
       customizationNotes,
-      approvalStatus: item.isCustomized ? 'pending_design' : undefined,
-      approvalHistory: item.isCustomized ? [{
-        status: 'pending_design',
-        note: customizationNotes || 'Order created',
-        actor: 'customer',
-        timestamp: new Date(),
-      }] : undefined,
-
-      // Legacy V1 Custom
-      customDesignId: item.customDesignId,
       customizationSnapshot: item.customizationSnapshot,
     });
 
@@ -407,28 +350,6 @@ export const createOrder = catchAsync(async (req: AuthRequest, res: Response) =>
     throw error;
   }
 
-  // 6. Link CustomDesign to Order
-  // Every write is explicitly scoped to the authenticated owner. A foreign
-  // design ID can therefore never have its status or order link mutated.
-  if (newOrder) {
-    for (const item of newOrder.items) {
-      if (item.isCustomized && item.customConfigurations) {
-        for (const config of item.customConfigurations) {
-          if (!config.designId) continue;
-
-          const linkResult = await mongoose.model('CustomDesign').updateOne(
-            { _id: config.designId, userId: req.user.id },
-            { $set: { orderId: newOrder._id, status: 'ORDERED' } }
-          );
-
-          if (linkResult.matchedCount !== 1) {
-            throw new AppError('Design not found or does not belong to you', 403, 'FORBIDDEN');
-          }
-        }
-      }
-    }
-  }
-
   const createdPayload = sanitizeCustomerOrder(newOrder);
 
   res.status(201).json({
@@ -465,6 +386,7 @@ function sanitizeCustomerOrder(orderDoc: any): Record<string, unknown> {
     placedAt: raw.placedAt,
     cancelledAt: raw.cancelledAt,
     cancellationReason: raw.cancellationReason,
+    partiallyCancelled: raw.partiallyCancelled ?? false,
     refundStatus: raw.refundStatus,
     tracking: raw.tracking,
     notes: raw.notes,
@@ -951,9 +873,15 @@ export const getPublicOrderTracking = catchAsync(async (req: Request, res: Respo
   const tokenHash = hashTrackingToken(token.trim());
   const order = await Order.findOne({ trackingTokenHash: tokenHash }).lean();
 
+  if (!order) {
+    throw new AppError('Tracking information not found or link has expired', 404, 'NOT_FOUND');
+  }
+
+  if (order.trackingTokenRevokedAt) {
+    throw new AppError('This tracking link has been revoked by the customer', 410, 'TRACKING_REVOKED');
+  }
+
   if (
-    !order ||
-    order.trackingTokenRevokedAt ||
     (order.trackingTokenExpiresAt && new Date(order.trackingTokenExpiresAt) < new Date()) ||
     order.status === 'CANCELLED' ||
     order.status === 'EXPIRED'

@@ -1,11 +1,11 @@
 import express from 'express';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
-import { requireCustomDesignEnabled } from '../config/features';
 import { refundLimiter, returnLimiter } from '../middleware/rateLimiters';
 import { 
   getDashboardMetrics, 
   getDashboardTrend,
+  getLiveOrderPoll,
   getOrders,
   bulkUpdateOrderStatus,
   getOrderById,
@@ -50,11 +50,6 @@ import {
   getReturnReverseShipment
 } from '../controllers/returnController';
 
-import { 
-  updateAdminCustomDesignStatus,
-  generateProductionAssets
-} from '../controllers/adminCustomDesignController';
-
 import { getAdminDiagnostics } from '../controllers/healthController';
 import * as adminCouponController from '../controllers/adminCouponController';
 import { exportOrdersPDF } from '../controllers/adminOrderExportController';
@@ -84,10 +79,10 @@ router.put('/settings', requirePermission('settings', 'manage', 'canManageSettin
 router.get('/dashboard', requirePermission('dashboard', 'view'), getDashboardMetrics);
 router.get('/dashboard/trend', requirePermission('dashboard', 'view'), getDashboardTrend);
 
-import { uploadStaffMockup } from '../controllers/adminCustomOrderController';
 import { getCreditNotesByOrder } from '../controllers/invoiceController';
 
 // Orders
+router.get('/orders/poll', getLiveOrderPoll);
 router.get('/orders/export/pdf', requirePermission('orders', 'view'), exportOrdersPDF);
 router.get('/orders', requirePermission('orders', 'view'), getOrders);
 router.patch('/orders/bulk-status', requirePermission('orders', 'manage'), bulkUpdateOrderStatus);
@@ -95,7 +90,6 @@ router.get('/orders/:id', requirePermission('orders', 'view'), getOrderById);
 router.patch('/orders/:id/status', requirePermission('orders', 'manage'), updateOrderStatus);
 router.post('/orders/:id/cancel', requirePermission('orders', 'manage', 'canRefund'), adminCancelOrder);
 router.post('/orders/:id/cancel-items', requirePermission('orders', 'manage', 'canRefund'), adminCancelOrderItems);
-router.post('/orders/:id/items/:itemId/mockup', requireCustomDesignEnabled, requirePermission('orders', 'manage'), uploadStaffMockup);
 router.post('/orders/:id/refund', refundLimiter, requirePermission('orders', 'manage', 'canRefund'), initiateRefund);
 router.get('/orders/:id/refunds', requirePermission('orders', 'view'), getOrderRefunds);
 router.post('/orders/:id/refunds/sync', requirePermission('orders', 'manage', 'canRefund'), syncOrderRefunds);
@@ -149,11 +143,6 @@ router.post('/returns/:id/reverse-quotes', requirePermission('returns', 'manage'
 router.post('/returns/:id/book-reverse-pickup', requirePermission('returns', 'manage'), bookReversePickup);
 router.post('/returns/:id/manual-shipping', requirePermission('returns', 'manage'), manualReturnShipping);
 router.get('/returns/:id/reverse-shipment', requirePermission('returns', 'view'), getReturnReverseShipment);
-
-// Admin Custom Orders (GET / and GET /:id live in adminCustomOrderRoutes, mounted
-// BEFORE this router so they keep the admin page's expected response shape).
-router.put('/custom-orders/:id/status', requireCustomDesignEnabled, requirePermission('customOrders', 'manage'), updateAdminCustomDesignStatus);
-router.post('/custom-orders/:id/generate-assets', requireCustomDesignEnabled, requirePermission('customOrders', 'manage'), generateProductionAssets);
 
 // Customers
 router.get('/customers/export', requirePermission('customers', 'view'), exportCustomersCSV);

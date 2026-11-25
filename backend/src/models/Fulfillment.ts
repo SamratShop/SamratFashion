@@ -97,7 +97,7 @@ const fulfillmentItemSchema = new Schema<IFulfillmentItem>({
   quantityPacked: { type: Number, default: 0, min: 0 },
   warehouseLocation: { type: String, default: 'Main Warehouse' },
   binLocation: { type: String, default: 'A1-BIN' },
-  customDesignId: { type: Schema.Types.ObjectId, ref: 'CustomDesign' }
+  customDesignId: { type: Schema.Types.ObjectId }
 }, { _id: false });
 
 const fulfillmentQCSchema = new Schema<IFulfillmentQC>({

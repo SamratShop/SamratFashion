@@ -17,6 +17,7 @@ export const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("login_ip", true),
   message: rateLimitResponse("Too many login attempts, please try again later."),
 });
@@ -49,6 +50,7 @@ export const registerLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("register_ip", true),
   message: rateLimitResponse(
     "Too many accounts created from this network, please try again later."
@@ -134,8 +136,49 @@ export const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Local load-test bypass — ONLY when explicitly enabled with NODE_ENV=development in local .env.
+    // Never set DISABLE_RATE_LIMIT=true on Render/production.
+    if (process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true") return true;
+    const url = req.originalUrl || req.url || '';
+    if (url.includes('/orders/poll') || url.startsWith('/api/health') || url.startsWith('/health') || url.startsWith('/api/catalog')) {
+      return true;
+    }
+    return false;
+  },
   store: getRateLimitStore("global_api", true),
   message: rateLimitResponse("Too many requests from this network, please try again later."),
+});
+
+// L3: Catalog read limiter — public, read-only, cache-served endpoints
+// (/api/catalog/*: 2000 requests / 15 min / IP, fail-closed).
+// Catalog reads are cheap (~1-2ms cache hits) and public, so they get a
+// higher cap than the global 300 — a shared IP (college WiFi, office NAT)
+// must not block legitimate browsing. Sensitive endpoints keep their own
+// strict limiters and are unaffected.
+export const catalogLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
+  store: getRateLimitStore("catalog_api", true),
+  message: rateLimitResponse("Too many requests from this network, please try again later."),
+});
+
+// Rate limit for inbound webhooks (300 req / 15 min / IP, fail-closed).
+// Legitimate webhook volume is tiny (a few per day), but carrier bursts
+// (many shipment updates at once) must not be dropped — 300 gives ample
+// headroom while stopping floods. Webhooks bypass globalLimiter (mounted
+// before it), so they need their own limiter.
+export const webhookLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
+  store: getRateLimitStore("webhook_ip", true),
+  message: rateLimitResponse("Too many webhook requests, please try again later."),
 });
 
 // L3: Strict rate limiter for AI generation endpoint (/api/ai/generate: 10 requests / 15 min / IP, fail-closed)
@@ -154,6 +197,7 @@ export const orderLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("order_create", true),
   message: rateLimitResponse("Too many order creation requests, please try again later."),
 });
@@ -164,6 +208,7 @@ export const paymentLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "development" && process.env.DISABLE_RATE_LIMIT === "true",
   store: getRateLimitStore("payment_op", true),
   message: rateLimitResponse("Too many payment operations, please try again later."),
 });

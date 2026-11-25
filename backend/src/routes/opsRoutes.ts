@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { requireOpsSecret } from '../middleware/opsAuth';
-import { getPaymentHealth, runRecoveryCycle } from '../controllers/opsController';
+import { requireOpsSecret, requireDigestCronSecret } from '../middleware/opsAuth';
+import { getPaymentHealth, runRecoveryCycle, sendAdminOrderDigest } from '../controllers/opsController';
 
 const router = Router();
 
@@ -10,6 +10,10 @@ router.use((_req, res, next) => {
   res.setHeader('Pragma', 'no-cache');
   next();
 });
+
+// Admin push notification digest (called by free external cron at 10, 13, 16, 19, 21 IST)
+// Authenticated via DIGEST_CRON_SECRET (or OPS_SECRET) with header x-cron-secret
+router.post('/notifications/digest', requireDigestCronSecret, sendAdminOrderDigest);
 
 // Operational endpoints are authenticated by a shared secret, not a user JWT.
 // See security-audit/PAYMENT_OPERATIONS_RUNBOOK.md.

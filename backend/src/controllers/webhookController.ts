@@ -617,6 +617,30 @@ export async function processSupportedWebhookEvent(
       if (order && order.paymentStatus === 'PENDING') {
         order.paymentStatus = 'FAILED';
         await order.save({ session: options.session || undefined });
+
+        try {
+          const User = mongoose.model('User');
+          const customer = await User.findById(order.userId).select('name email');
+          if (customer && customer.email) {
+            const { notificationService } = require('../services/notifications/notificationService');
+            notificationService.notify({
+              eventType: 'PAYMENT_FAILED',
+              entityType: 'PAYMENT',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `PAYMENT_FAILED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                amount: order.total,
+                reason: paymentEntity.error_description || 'Payment failed at gateway',
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[WEBHOOK] Failed to dispatch PAYMENT_FAILED notification:', notifErr);
+        }
       }
       return { outcome: 'PROCESSED' };
     }
@@ -1007,6 +1031,33 @@ async function handleRefundProcessedEntity(
     { $set: { accountingSettlementStatus: isSettled ? 'COMPLETED' : 'RECONCILIATION_REQUIRED' } },
     { session: session || undefined }
   );
+
+  if (orderDoc) {
+    try {
+      const User = mongoose.model('User');
+      const customer = await User.findById(orderDoc.userId).select('name email');
+      if (customer && customer.email) {
+        const { notificationService } = require('../services/notifications/notificationService');
+        notificationService.notify({
+          eventType: 'REFUND_PROCESSED',
+          entityType: 'ORDER',
+          entityId: orderDoc._id,
+          recipientEmail: customer.email,
+          idempotencyKey: `REFUND_PROCESSED:${existingRefund._id}`,
+          data: {
+            customerName: customer.name || (orderDoc as any).shippingAddress?.fullName || 'Customer',
+            orderNumber: orderDoc.orderNumber,
+            amount: existingRefund.amount,
+            refundId: existingRefund._id?.toString(),
+            userId: orderDoc.userId,
+          },
+        });
+      }
+    } catch (notifErr) {
+      console.warn('[WEBHOOK] Failed to dispatch REFUND_PROCESSED notification:', notifErr);
+    }
+  }
+
   return { outcome: 'PROCESSED' };
 }
 
@@ -1245,6 +1296,33 @@ async function handleRefundFailedEntity(
     { $set: { accountingSettlementStatus: isSettled ? 'COMPLETED' : 'RECONCILIATION_REQUIRED' } },
     { session: session || undefined }
   );
+
+  if (orderDoc) {
+    try {
+      const User = mongoose.model('User');
+      const customer = await User.findById(orderDoc.userId).select('name email');
+      if (customer && customer.email) {
+        const { notificationService } = require('../services/notifications/notificationService');
+        notificationService.notify({
+          eventType: 'REFUND_PROCESSED',
+          entityType: 'ORDER',
+          entityId: orderDoc._id,
+          recipientEmail: customer.email,
+          idempotencyKey: `REFUND_PROCESSED:${existingRefund._id}`,
+          data: {
+            customerName: customer.name || (orderDoc as any).shippingAddress?.fullName || 'Customer',
+            orderNumber: orderDoc.orderNumber,
+            amount: existingRefund.amount,
+            refundId: existingRefund._id?.toString(),
+            userId: orderDoc.userId,
+          },
+        });
+      }
+    } catch (notifErr) {
+      console.warn('[WEBHOOK] Failed to dispatch REFUND_PROCESSED notification:', notifErr);
+    }
+  }
+
   return { outcome: 'PROCESSED' };
 }
 

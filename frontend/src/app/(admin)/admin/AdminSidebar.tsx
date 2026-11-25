@@ -39,21 +39,12 @@ export const navGroups: NavGroup[] = [
       { name: "Products", href: "/admin/products", icon: "inventory_2", module: "products" },
       { name: "Categories", href: "/admin/categories", icon: "category", module: "categories" },
       { name: "Inventory", href: "/admin/inventory", icon: "warehouse", module: "inventory" },
+      { name: "Bulk Orders", href: "/admin/bulk-orders", icon: "view_in_ar", module: "bulkOrders", feature: "bulkOrders" },
       { name: "Customers", href: "/admin/customers", icon: "group", module: "customers" },
       { name: "Returns", href: "/admin/returns", icon: "assignment_return", module: "returns" },
       { name: "Reviews", href: "/admin/reviews", icon: "star", module: "reviews" },
       { name: "Support", href: "/admin/support", icon: "support_agent", module: "support" },
       { name: "Store Settings", href: "/admin/settings", icon: "settings", module: "settings" }
-    ]
-  },
-  {
-    title: "Custom Printing & Production",
-    items: [
-      { name: "Print Catalog", href: "/admin/print-catalog", icon: "apparel", module: "printCatalog", feature: "customDesign" },
-      { name: "Print Pricing", href: "/admin/print-pricing", icon: "payments", module: "printPricing", feature: "customDesign" },
-      { name: "Custom Orders", href: "/admin/custom-orders", icon: "palette", module: "customOrders", feature: "customDesign" },
-      { name: "Bulk Orders", href: "/admin/bulk-orders", icon: "view_in_ar", module: "bulkOrders", feature: "bulkOrders" },
-      { name: "Production Queue", href: "/admin/production", icon: "precision_manufacturing", module: "production", feature: "customDesign" }
     ]
   },
   {

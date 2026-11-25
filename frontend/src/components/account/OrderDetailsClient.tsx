@@ -39,6 +39,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
   const [invoiceFeedback, setInvoiceFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currentTime] = useState(() => Date.now());
   useEffect(() => {
     try {
       setIsPaymentStatusUncertain(
@@ -887,7 +888,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                 {order.status === 'DELIVERED' && (() => {
                   const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : null;
                   const daysSinceDelivery = deliveredDate 
-                    ? (Date.now() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
+                    ? (currentTime - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
                     : 0;
                   const isExpired = deliveredDate ? daysSinceDelivery > 7 : false;
                   const daysRemaining = deliveredDate ? Math.max(0, Math.ceil(7 - daysSinceDelivery)) : 7;

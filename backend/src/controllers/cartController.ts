@@ -2,13 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import { Cart } from "../models/Cart";
 import { ProductStatus } from "../models/Product";
 import { AppError } from "../utils/AppError";
-import { isCustomDesignEnabled } from "../config/features";
 import mongoose from "mongoose";
 import { validateAndCalculateCouponDiscount } from "../utils/couponEngine";
 import { applyCouponSchema } from "../utils/couponValidation";
 import { PricingService } from "../services/pricingService";
 import { calculateShipping, getStoreSettings } from "../services/storeSettingsService";
-import { extractDesignIds, loadOwnedDesignsOrThrow } from "../utils/designOwnership";
 
 const getCalculatedCart = async (userId: string) => {
   let cart = await Cart.findOne({ userId });
@@ -164,7 +162,7 @@ export const addItemToCart = async (req: Request, res: Response, next: NextFunct
     const userId = (req as any).user?.id;
     const { productId, variantId, quantity, isCustomized, customConfigurations } = req.body;
 
-    if (!isCustomDesignEnabled() && (isCustomized || (Array.isArray(customConfigurations) && customConfigurations.length > 0))) {
+    if (isCustomized || (Array.isArray(customConfigurations) && customConfigurations.length > 0)) {
       throw new AppError("Custom design features are disabled for this deployment", 503, "CUSTOM_DESIGN_DISABLED");
     }
 
@@ -175,13 +173,6 @@ export const addItemToCart = async (req: Request, res: Response, next: NextFunct
     const parsedQty = Math.floor(Number(quantity || 1));
     if (!isCustomized && (!Number.isFinite(parsedQty) || parsedQty < 1)) {
       throw new AppError("Quantity must be a positive integer", 400, "VALIDATION_ERROR");
-    }
-
-    // Security: every design reference must belong to the authenticated user.
-    // This runs before pricing so a foreign design ID cannot influence any
-    // calculation or response payload.
-    if (isCustomized) {
-      await loadOwnedDesignsOrThrow(extractDesignIds({ customConfigurations }), userId);
     }
 
     // Call pricing service merely to validate everything
@@ -270,45 +261,15 @@ export const updateCartItemQuantity = async (req: Request, res: Response, next: 
 
     if (!item) throw new AppError("Item not in cart", 404, "NOT_FOUND");
 
-    if (!isCustomDesignEnabled() && (item.isCustomized || (Array.isArray(customConfigurations) && customConfigurations.length > 0))) {
+    if (item.isCustomized || (Array.isArray(customConfigurations) && customConfigurations.length > 0)) {
       throw new AppError("Custom design features are disabled for this deployment", 503, "CUSTOM_DESIGN_DISABLED");
     }
 
-    if (item.isCustomized) {
-      if (customConfigurations) {
-        if (!Array.isArray(customConfigurations)) {
-          throw new AppError("Invalid custom configurations", 400, "VALIDATION_ERROR");
-        }
-
-        // Security: the update path is an independent authorization boundary.
-        // Re-validate ownership here even though addItemToCart already did it,
-        // otherwise an attacker can swap in a victim's design ID later.
-        await loadOwnedDesignsOrThrow(extractDesignIds({ customConfigurations }), userId);
-
-        const totalCustomQty = customConfigurations.reduce((acc: number, c: any) => {
-          const configQty = c.sizeDistribution?.reduce((s: number, d: any) => {
-            const q = Math.floor(Number(d.quantity));
-            if (!Number.isFinite(q) || q < 0) {
-              throw new AppError("Invalid size distribution quantity", 400, "VALIDATION_ERROR");
-            }
-            return s + q;
-          }, 0) || 0;
-          return acc + configQty;
-        }, 0);
-
-        if (!Number.isFinite(totalCustomQty) || totalCustomQty < 1) {
-          throw new AppError("Quantity must be a positive integer", 400, "VALIDATION_ERROR");
-        }
-        item.customConfigurations = customConfigurations;
-        item.quantity = totalCustomQty;
-      }
-    } else {
-      const parsedQty = Math.floor(Number(quantity));
-      if (!Number.isFinite(parsedQty) || parsedQty < 1) {
-        throw new AppError("Quantity must be a positive integer", 400, "VALIDATION_ERROR");
-      }
-      item.quantity = parsedQty;
+    const parsedQty = Math.floor(Number(quantity));
+    if (!Number.isFinite(parsedQty) || parsedQty < 1) {
+      throw new AppError("Quantity must be a positive integer", 400, "VALIDATION_ERROR");
     }
+    item.quantity = parsedQty;
 
     // Validates via pricing service implicitly when saving in getCalculatedCart
     await cart.save();

@@ -25,6 +25,7 @@ import {
   Compass,
 } from "lucide-react";
 import { formatCityStatePin, cleanAddressLine } from "@/lib/addressFormat";
+import { sanitizeLoginRedirect } from "@/lib/authRedirect";
 
 export function AddressBookClient() {
   const router = useRouter();
@@ -262,7 +263,7 @@ export function AddressBookClient() {
       handleCloseDrawer();
       if (redirectUrl) {
         setTimeout(() => {
-          router.push(redirectUrl);
+          router.push(sanitizeLoginRedirect(redirectUrl));
         }, 400);
       }
     } catch (err: unknown) {

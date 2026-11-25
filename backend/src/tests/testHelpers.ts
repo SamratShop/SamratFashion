@@ -5,8 +5,6 @@
 
 import mongoose from "mongoose";
 import { Product, ProductStatus } from "../models/Product";
-import { CustomDesign } from "../models/CustomDesign";
-import { IDesignElement, IDesignLayout } from "../models/CustomTemplate";
 
 import { getVerifiedTestMongoUri, assertSafeTestDatabase } from "../config/testDbGuard";
 
@@ -114,64 +112,4 @@ export async function createTestProduct(overrides: {
     productId: product._id.toString(),
     variantIds: product.variants.map((v: any) => v._id.toString()),
   };
-}
-
-/**
- * Creates a valid CustomDesign document for test use.
- */
-export async function createTestDesign(params: {
-  userId: string;
-  productId: mongoose.Types.ObjectId | string;
-  variantId: mongoose.Types.ObjectId | string;
-  color?: string;
-  name?: string;
-  numElements?: number;
-}): Promise<{ design: any; designId: string }> {
-  const elements: IDesignElement[] = Array.from({ length: params.numElements ?? 1 }, (_, i) => ({
-    id: `el-${i}`,
-    type: "TEXT" as const,
-    x: 100 + i * 20,
-    y: 150 + i * 20,
-    width: 200,
-    height: 50,
-    rotation: 0,
-    scaleX: 1,
-    scaleY: 1,
-    opacity: 1,
-    locked: false,
-    zIndex: i,
-    properties: { text: `Test Element ${i}`, fontSize: 24, fontFamily: "Arial", color: "#000000" },
-  }));
-
-  const layout: IDesignLayout = {
-    front: { elements },
-    back: { elements: [] },
-    leftSleeve: { elements: [] },
-    rightSleeve: { elements: [] },
-  };
-
-  const design = await CustomDesign.create({
-    userId: new mongoose.Types.ObjectId(params.userId),
-    name: params.name || `Test Design ${Date.now()}`,
-    productId: new mongoose.Types.ObjectId(params.productId.toString()),
-    selectedVariantId: new mongoose.Types.ObjectId(params.variantId.toString()),
-    selectedColor: params.color || "BLACK",
-    status: "DRAFT",
-    requestType: "DESIGN",
-    printLocations: ["FRONT"],
-    currentVersion: 1,
-    submissionKey: `test-design-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    design: layout,
-    versions: [{
-      version: 1,
-      design: layout,
-      createdBy: new mongoose.Types.ObjectId(params.userId),
-      createdAt: new Date(),
-      status: "DRAFT",
-      previewUrls: [],
-      artworkUrls: [],
-    }],
-  });
-
-  return { design, designId: design._id.toString() };
 }

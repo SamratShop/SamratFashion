@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import { Order } from '../models/Order';
+import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { Fulfillment, FulfillmentStatus } from '../models/Fulfillment';
 import { AuditLog } from '../models/AuditLog';
@@ -9,6 +10,7 @@ import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
 import { logisticsService } from '../services/logistics/logisticsService';
 import { generateShippingLabelPDFBuffer } from '../utils/pdfLabelGenerator';
+import { notificationService } from '../services/notifications/notificationService';
 
 interface AuthRequest extends Request {
   user?: {
@@ -208,6 +210,29 @@ export const createShipment = catchAsync(async (req: AuthRequest, res: Response)
     // Advance order and fulfillment statuses upon successful shipment dispatch
     order.status = 'SHIPPED';
     await order.save();
+
+    try {
+      const customer = await User.findById(order.userId).select('name email');
+      if (customer && customer.email) {
+        notificationService.notify({
+          eventType: 'ORDER_SHIPPED',
+          entityType: 'ORDER',
+          entityId: order._id,
+          recipientEmail: customer.email,
+          idempotencyKey: `ORDER_SHIPPED:${order._id}`,
+          data: {
+            customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+            orderNumber: order.orderNumber,
+            carrier: shipment.carrier || 'Standard Courier',
+            trackingNumber: shipment.awbNumber || 'N/A',
+            total: order.total,
+            userId: order.userId,
+          },
+        });
+      }
+    } catch (notifErr) {
+      console.warn('[Shipment] Failed to dispatch ORDER_SHIPPED notification:', notifErr);
+    }
 
     const fulfillment = await Fulfillment.findOne({ orderId: order._id });
     if (fulfillment) {
@@ -422,6 +447,26 @@ export const refreshTracking = catchAsync(async (req: AuthRequest, res: Response
         order.status = 'DELIVERED';
         if (!order.deliveredAt) order.deliveredAt = new Date();
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email');
+          if (customer && customer.email) {
+            notificationService.notify({
+              eventType: 'ORDER_DELIVERED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_DELIVERED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[Shipment] Failed to dispatch ORDER_DELIVERED notification:', notifErr);
+        }
       }
     } else if (['PICKED_UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(trackingData.status)) {
       shipment.shippedAt = shipment.shippedAt || new Date();
@@ -429,6 +474,28 @@ export const refreshTracking = catchAsync(async (req: AuthRequest, res: Response
       if (order && ['CONFIRMED', 'PROCESSING'].includes(order.status)) {
         order.status = 'SHIPPED';
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email');
+          if (customer && customer.email) {
+            notificationService.notify({
+              eventType: 'ORDER_SHIPPED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_SHIPPED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                carrier: shipment.carrier || 'Standard Courier',
+                trackingNumber: shipment.awbNumber || 'N/A',
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[Shipment] Failed to dispatch ORDER_SHIPPED notification:', notifErr);
+        }
       }
     }
   }
@@ -544,11 +611,53 @@ export const updateShipment = catchAsync(async (req: AuthRequest, res: Response)
         order.status = 'DELIVERED';
         if (!order.deliveredAt) order.deliveredAt = new Date();
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email');
+          if (customer && customer.email) {
+            notificationService.notify({
+              eventType: 'ORDER_DELIVERED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_DELIVERED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[Shipment] Failed to dispatch ORDER_DELIVERED notification:', notifErr);
+        }
       }
     } else if (['SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(status)) {
       if (order.status === 'PROCESSING') {
         order.status = 'SHIPPED';
         await order.save();
+
+        try {
+          const customer = await User.findById(order.userId).select('name email');
+          if (customer && customer.email) {
+            notificationService.notify({
+              eventType: 'ORDER_SHIPPED',
+              entityType: 'ORDER',
+              entityId: order._id,
+              recipientEmail: customer.email,
+              idempotencyKey: `ORDER_SHIPPED:${order._id}`,
+              data: {
+                customerName: customer.name || (order as any).shippingAddress?.fullName || 'Customer',
+                orderNumber: order.orderNumber,
+                carrier: shipment.carrier || 'Standard Courier',
+                trackingNumber: shipment.awbNumber || 'N/A',
+                userId: order.userId,
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.warn('[Shipment] Failed to dispatch ORDER_SHIPPED notification:', notifErr);
+        }
       }
     }
   }

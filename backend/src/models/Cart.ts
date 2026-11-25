@@ -78,7 +78,6 @@ const cartItemSchema = new Schema<ICartItem>(
     },
     customDesignId: {
       type: Schema.Types.ObjectId,
-      ref: "CustomDesign",
     },
     customizationSnapshot: {
       name: { type: String },
@@ -92,7 +91,7 @@ const cartItemSchema = new Schema<ICartItem>(
       {
         color: { type: String, required: true },
         variantId: { type: Schema.Types.ObjectId, required: true },
-        designId: { type: Schema.Types.ObjectId, ref: "CustomDesign" },
+        designId: { type: Schema.Types.ObjectId },
         purchasedDesignVersion: { type: Number },
         approvedDesignVersion: { type: Number, default: null },
         sizeDistribution: [
