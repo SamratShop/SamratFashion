@@ -103,7 +103,8 @@ api.interceptors.response.use(
       const isAuthUrl = 
         originalRequest.url?.includes("/auth/login") || 
         originalRequest.url?.includes("/auth/refresh") ||
-        originalRequest.url?.includes("/auth/register");
+        originalRequest.url?.includes("/auth/register") ||
+        originalRequest.url?.includes("/auth/me");
 
       if (isAuthUrl) {
         return Promise.reject(error);

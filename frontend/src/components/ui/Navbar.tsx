@@ -188,7 +188,7 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
               aria-label="Open mobile navigation menu"
-              className="p-2 -ml-2 text-on-surface hover:bg-surface-container rounded-lg lg:hidden active:scale-95 transition-all flex items-center justify-center touch-target-base"
+              className="w-12 h-12 -ml-2 text-on-surface hover:bg-surface-container rounded-lg lg:hidden active:scale-95 transition-all flex items-center justify-center touch-target-base"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -301,11 +301,11 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
           </nav>
 
           {/* Action Icons */}
-          <div className="flex items-center gap-3 md:gap-4 text-on-surface">
+          <div className="flex items-center gap-2 md:gap-3 text-on-surface">
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               aria-label="Search catalog"
-              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95"
+              className="w-12 h-12 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 cursor-pointer"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -313,7 +313,7 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
               href={isGuest ? "/login" : "/account"}
               aria-label={isGuest ? "Sign in to account" : "My Account"}
               title={isGuest ? "Sign in" : "My Account"}
-              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 hidden sm:flex"
+              className="w-12 h-12 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 hidden sm:flex"
             >
               <User className="w-5 h-5" />
             </Link>
@@ -322,11 +322,11 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
               href="/account/wishlist"
               aria-label={isGuest ? "Wishlist (sign in required)" : "Saved Wishlist"}
               title={isGuest ? "Sign in to view wishlist" : "Saved Wishlist"}
-              className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 relative hidden sm:flex"
+              className="w-12 h-12 items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 relative hidden sm:flex"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
-                <span className="absolute top-1 right-1 bg-neutral-900 text-white min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-mono text-[9px] font-bold">
+                <span className="absolute top-1.5 right-1.5 bg-neutral-900 text-white min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-mono text-[9px] font-bold">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
                 </span>
               )}
@@ -335,11 +335,11 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
               href="/cart"
               aria-label={isGuest ? "Shopping Bag (sign in required)" : "Shopping Bag"}
               title={isGuest ? "Sign in to view bag" : "Shopping Bag"}
-              className="p-2 text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 relative flex items-center gap-2"
+              className="w-12 h-12 items-center justify-center text-on-surface hover:bg-surface-container rounded-lg transition-colors active:scale-95 relative flex"
             >
               <ShoppingBag className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="bg-primary text-white min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-mono text-[10px] font-bold">
+                <span className="absolute top-1.5 right-1.5 bg-primary text-white min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-mono text-[10px] font-bold">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -655,7 +655,7 @@ export function Navbar({ categories = [] }: { categories?: CategoryItem[] }) {
         )}
       </AnimatePresence>
       {!hideBottomNav && (
-        <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-1 py-1.5 pb-safe lg:hidden bg-surface/95 border-t border-outline-variant/30 backdrop-blur-lg shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-2 py-1.5 pb-safe lg:hidden bg-surface/95 border-t border-outline-variant/30 backdrop-blur-lg shadow-[0_-8px_24px_rgba(0,0,0,0.06)] gap-1">
           <Link
             href="/"
             className={`min-w-[56px] min-h-[48px] flex flex-col items-center justify-center p-1 rounded-lg active:scale-95 transition-all ${

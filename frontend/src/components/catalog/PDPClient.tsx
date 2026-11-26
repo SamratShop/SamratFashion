@@ -11,9 +11,20 @@ import { ProductCard, ProductCardProps } from "@/components/catalog/ProductCard"
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, isItemInWishlist } from "@/store/useWishlistStore";
-import ProductReviewsSection from "@/components/catalog/ProductReviewsSection";
-import SizeGuideModal from "@/components/catalog/SizeGuideModal";
-import { ProductShareModal } from "@/components/catalog/ProductShareModal";
+import dynamic from "next/dynamic";
+
+const ProductReviewsSection = dynamic(
+  () => import("@/components/catalog/ProductReviewsSection"),
+  { ssr: true }
+);
+const SizeGuideModal = dynamic(
+  () => import("@/components/catalog/SizeGuideModal"),
+  { ssr: true }
+);
+const ProductShareModal = dynamic(
+  () => import("@/components/catalog/ProductShareModal").then((m) => m.ProductShareModal),
+  { ssr: true }
+);
 import { useStoreSettings } from "@/lib/useStoreSettings";
 import { formatFreeShippingRule } from "@/lib/storeSettingsDefaults";
 import { sanitizeProductDescriptionHtml } from "@/lib/sanitizeHtml";
@@ -752,6 +763,7 @@ export function PDPClient({
                   className="object-contain transition-all duration-500 ease-in-out group-hover:scale-[1.03]"
                   priority
                   loading="eager"
+                  fetchPriority="high"
                   sizes="(max-width: 768px) 100vw, 55vw"
                   onLoad={() => setLoadedHeroSrc(heroImageSrc)}
                   onError={() => setLoadedHeroSrc(heroImageSrc)}
@@ -1177,7 +1189,7 @@ export function PDPClient({
                   disabled={!isAvailable}
                   aria-busy={isSwitching}
                   onClick={() => handleSizeChange(size)}
-                  className={`py-2.5 rounded-md border font-mono text-xs transition-colors uppercase min-h-[44px] flex items-center justify-center ${
+                  className={`py-2.5 rounded-md border font-mono text-xs transition-colors uppercase min-h-[48px] flex items-center justify-center ${
                     isSelected
                       ? "border-neutral-900 bg-neutral-900 text-white font-bold shadow-xs"
                       : !isAvailable

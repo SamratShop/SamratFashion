@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { useEffect, useState } from "react";
+import { optimizeCloudinaryUrl } from "@/lib/imageUtils";
 
 export default function CartPage() {
   const router = useRouter();
@@ -34,10 +35,41 @@ export default function CartPage() {
     }
   }, [isAuthenticated, items, summary.total]);
 
-  if (authLoading) {
+  if (authLoading || (isLoading && items.length === 0)) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-20 flex justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 outline-none">
+        <div className="flex items-baseline justify-between mb-8 border-b border-outline-variant/30 pb-4">
+          <div className="h-8 w-48 bg-surface-container-high rounded animate-pulse" />
+          <div className="h-4 w-16 bg-surface-container rounded animate-pulse" />
+        </div>
+        <div className="flex flex-col lg:flex-row gap-12">
+          <div className="w-full lg:w-2/3 flex flex-col gap-6">
+            {[1, 2].map((skeletonIdx) => (
+              <div key={skeletonIdx} className="flex gap-3 sm:gap-6 bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 sm:p-4 min-h-[160px] animate-pulse">
+                <div className="w-20 sm:w-28 md:w-32 aspect-[3/4] rounded bg-surface-container shrink-0" />
+                <div className="flex flex-col flex-grow gap-3 justify-between py-1">
+                  <div className="space-y-2">
+                    <div className="h-5 w-3/4 bg-surface-container rounded" />
+                    <div className="h-4 w-1/4 bg-surface-container rounded" />
+                  </div>
+                  <div className="h-8 w-1/3 bg-surface-container rounded mt-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="w-full lg:w-1/3">
+            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-6 min-h-[380px] animate-pulse flex flex-col gap-4">
+              <div className="h-5 w-36 bg-surface-container rounded mb-2" />
+              <div className="h-10 w-full bg-surface-container rounded" />
+              <div className="space-y-3 pt-3">
+                <div className="h-4 w-full bg-surface-container rounded" />
+                <div className="h-4 w-full bg-surface-container rounded" />
+                <div className="h-6 w-full bg-surface-container rounded pt-2" />
+              </div>
+              <div className="h-12 w-full bg-surface-container-high rounded mt-auto" />
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
@@ -48,7 +80,7 @@ export default function CartPage() {
 
   if (!isLoading && items.length === 0) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-24 flex flex-col items-center justify-center">
+      <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-24 flex flex-col items-center justify-center outline-none">
         <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-6 text-on-surface-variant">
           <ShoppingBag className="w-10 h-10" />
         </div>
@@ -106,7 +138,11 @@ export default function CartPage() {
   };
 
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 outline-none"
+    >
       <div className="flex items-baseline justify-between mb-8 border-b border-outline-variant/30 pb-4">
         <h1 className="font-headline-lg text-2xl sm:text-3xl font-black text-on-surface uppercase tracking-tight">SHOPPING BAG</h1>
         <span className="font-mono text-xs text-neutral-500 font-bold uppercase">{items.length} ITEM{items.length !== 1 ? 'S' : ''}</span>
@@ -121,11 +157,24 @@ export default function CartPage() {
               : "/shop";
 
             const unitPriceInRupees = item.unitPrice || item.productId?.basePrice || 0;
+            const rawImg = item.isCustomized
+              ? (item.customizationSnapshot?.previewImage || "/placeholder.jpg")
+              : (item.variantDetails?.image || item.productId?.images?.[0] || "/placeholder.jpg");
+            const optimizedThumbnail = rawImg.startsWith("http") ? optimizeCloudinaryUrl(rawImg, 600) : rawImg;
 
             return (
               <div key={`${item.productId._id}-${item.variantId}-${idx}`} className={`flex gap-3 sm:gap-6 bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 sm:p-4 ${!item.isAvailable ? 'opacity-70' : ''}`}>
                 <Link href={itemHref} className="w-20 sm:w-28 md:w-32 aspect-[3/4] relative rounded overflow-hidden shrink-0 bg-surface-container">
-                  <Image src={item.isCustomized ? (item.customizationSnapshot?.previewImage || "/placeholder.jpg") : (item.variantDetails?.image || item.productId.images[0] || "/placeholder.jpg")} alt={item.productId.name} fill className="object-cover" />
+                  <Image
+                    src={optimizedThumbnail}
+                    alt={item.productId.name}
+                    fill
+                    priority={idx === 0}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    fetchPriority={idx === 0 ? "high" : "auto"}
+                    sizes="(max-width: 640px) 80px, (max-width: 768px) 112px, 128px"
+                    className="object-cover"
+                  />
                 </Link>
 
                 {/* Product Info */}
