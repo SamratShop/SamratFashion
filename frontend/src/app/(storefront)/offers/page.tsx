@@ -72,7 +72,11 @@ export default async function OffersPage() {
   const categories = filterStorefrontCategories(rawCategories || []);
 
   return (
-    <>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="w-full flex-grow outline-none"
+    >
       <JsonLd
         id="offers-breadcrumbs-jsonld"
         data={getBreadcrumbJsonLd([
@@ -92,6 +96,6 @@ export default async function OffersPage() {
         banners={banners}
         categories={categories}
       />
-    </>
+    </main>
   );
 }

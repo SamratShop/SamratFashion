@@ -26,10 +26,30 @@ export default function WishlistPage() {
         tabIndex={-1}
         className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-6 pb-12 sm:pb-16 lg:pb-10 outline-none"
       >
-        <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8">
+        <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
           <AccountNav currentTab="wishlist" />
-          <div className="py-20 flex justify-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
+            <div>
+              <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                <div className="h-9 w-48 bg-surface-container rounded" />
+                <div className="h-5 w-14 bg-surface-container rounded" />
+              </div>
+              <div className="h-4 w-72 bg-surface-container rounded mt-2" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 min-h-[380px]">
+            {[1, 2].map((skeletonIdx) => (
+              <div
+                key={skeletonIdx}
+                className="bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/40"
+              >
+                <div className="aspect-[3/4] bg-surface-container" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-surface-container rounded" />
+                  <div className="h-4 w-1/3 bg-surface-container rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>
@@ -56,24 +76,29 @@ export default function WishlistPage() {
               <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
                 MY WISHLIST
               </h1>
-              {!isLoading && items.length > 0 && (
-                <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md">
-                  {items.length} {items.length === 1 ? "Item" : "Items"}
-                </span>
-              )}
+              <span className="inline-flex items-center min-h-[22px] min-w-[50px]">
+                {isLoading ? (
+                  <span className="h-5 w-12 rounded-md bg-surface-container-high animate-pulse" />
+                ) : items.length > 0 ? (
+                  <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md">
+                    {items.length} {items.length === 1 ? "Item" : "Items"}
+                  </span>
+                ) : null}
+              </span>
             </div>
-            {items.length > 0 && (
-              <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
-                Save your favorite pieces to track availability, size restocks, and new tailored arrivals.
-              </p>
-            )}
+            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed min-h-[1.25rem]">
+              Save your favorite pieces to track availability, size restocks, and new tailored arrivals.
+            </p>
           </div>
         </div>
 
+        {/* Hidden section heading for sequential descending order (h1 -> h2 -> h3) */}
+        <h2 className="sr-only">Wishlist Items</h2>
+
         {/* Loading Skeleton */}
         {isLoading && items.length === 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {[1, 2, 3, 4].map((skeletonIdx) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 min-h-[380px]">
+            {[1, 2].map((skeletonIdx) => (
               <div
                 key={skeletonIdx}
                 className="bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/40 animate-pulse"
@@ -105,7 +130,7 @@ export default function WishlistPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 min-h-[380px]">
             {items.map((item, idx) => {
               const product = item.productId as unknown as any;
 

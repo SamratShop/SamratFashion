@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrderStore } from "@/store/useOrderStore";
-import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2, Bell, X } from "lucide-react";
+import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2, Bell, X, Download } from "lucide-react";
 import { ShareTrackingModal } from "@/components/orders/ShareTrackingModal";
 import Image from "next/image";
 import { subscribeToPush, isPushSupported, getPushPermission } from "@/lib/pushNotifications";
@@ -96,7 +96,11 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
   // Loading State
   if (isLoading && !currentOrder) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow w-full max-w-container-max mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh] outline-none"
+      >
         <RefreshCw className="w-10 h-10 text-primary animate-spin mb-4" />
         <h2 className="text-xl font-bold text-on-surface mb-2">Loading your order confirmation...</h2>
         <p className="text-sm text-on-surface-variant">Please wait a moment while we retrieve your order details.</p>
@@ -107,7 +111,11 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
   // Error State (Never return null)
   if ((error || fetchError || !currentOrder) && !isLoading) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-4 py-16 flex items-center justify-center min-h-[60vh]">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow w-full max-w-container-max mx-auto px-4 py-16 flex items-center justify-center min-h-[60vh] outline-none"
+      >
         <div className="max-w-md w-full bg-surface-container-lowest border border-outline-variant/30 p-8 rounded-2xl shadow-lg text-center space-y-6">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
             <AlertCircle className="w-8 h-8" />
@@ -152,7 +160,11 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
   const isEligibleForInvoice = ['PAID', 'REFUNDED'].includes(order.paymentStatus) || ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(order.status);
 
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 outline-none"
+    >
       <div className="max-w-4xl mx-auto space-y-12">
 
         {/* Success Header */}
@@ -451,7 +463,7 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
               onClick={() => downloadOrViewInvoicePdf(order._id, `Invoice-${order.orderNumber}.pdf`)}
               className="w-full md:w-auto px-8 bg-surface-container border border-outline-variant/60 text-on-surface hover:bg-surface-container-high font-mono text-xs uppercase tracking-wider font-bold py-3.5 rounded-md transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined text-base">download</span>
+              <Download className="w-4 h-4" />
               <span>DOWNLOAD TAX INVOICE</span>
             </button>
           )}

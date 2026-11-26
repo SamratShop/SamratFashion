@@ -8,7 +8,23 @@ import { useOrderStore, OrderItemSnapshot } from "@/store/useOrderStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { getOrderStatusBadges, ORDER_STATUS_TONE_CLASSES } from "@/lib/orderStatus";
-import { CheckCircle2, Package, Truck, Home, MapPin, ChevronLeft, CreditCard, Share2, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Package,
+  Truck,
+  Home,
+  MapPin,
+  ChevronLeft,
+  CreditCard,
+  Share2,
+  Loader2,
+  CircleHelp,
+  Download,
+  XCircle,
+  Clock,
+  X,
+  AlertTriangle,
+} from "lucide-react";
 import { ShareTrackingModal } from "@/components/orders/ShareTrackingModal";
 import Image from "next/image";
 import Script from "next/script";
@@ -378,7 +394,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
           href={`/support?orderId=${order._id}`}
           className="px-3 sm:px-4 min-h-[44px] bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-xl font-label-caps text-[11px] sm:text-xs font-bold hover:bg-surface-variant transition-colors flex items-center gap-1.5 shrink-0"
         >
-          <span className="material-symbols-outlined text-base">help_outline</span>
+          <CircleHelp className="w-4 h-4" />
           <span className="sm:hidden">Help</span>
           <span className="hidden sm:inline">Need Help with Order?</span>
         </Link>
@@ -425,7 +441,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                   {isDownloadingInvoice ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                   ) : (
-                    <span className="material-symbols-outlined text-sm">download</span>
+                    <Download className="w-3.5 h-3.5" />
                   )}
                   <span className="truncate">{isDownloadingInvoice ? "PREPARING PDF..." : "TAX INVOICE"}</span>
                 </button>
@@ -473,7 +489,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
         {isCancelledOrExpired ? (
           <section className="bg-red-50/70 dark:bg-red-950/20 p-4 sm:p-6 rounded-xl border border-red-200/80 dark:border-red-900/40">
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-red-600 text-2xl shrink-0">cancel</span>
+              <XCircle className="w-6 h-6 text-red-600 shrink-0" />
               <div className="space-y-1">
                 <h2 className="font-headline-sm text-base font-bold text-red-800 dark:text-red-300">
                   {order.status === 'EXPIRED' ? 'Order Expired' : 'Order Cancelled'}
@@ -673,7 +689,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                   {r.returnAwbNumber && (
                     <div className="my-2.5 p-2 bg-surface-container-low rounded-lg border border-outline-variant/20 text-xs font-mono flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[16px] text-primary">local_shipping</span>
+                        <Truck className="w-4 h-4 text-primary" />
                         <span className="font-semibold text-on-surface">{r.returnCarrier || "Reverse Courier"}:</span>
                         <span className="font-bold text-primary select-all">{r.returnAwbNumber}</span>
                       </div>
@@ -796,7 +812,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                             onClick={() => handleOpenCancelModal(item._id)}
                             className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline inline-flex items-center gap-1 transition-colors min-h-[40px] px-1"
                           >
-                            <span className="material-symbols-outlined text-[14px]">cancel</span>
+                            <XCircle className="w-3.5 h-3.5" />
                             Cancel this item
                           </button>
                         </div>
@@ -912,7 +928,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                     return (
                       <div className="w-full mt-4 p-3 bg-surface-container-low border border-outline-variant/30 rounded-lg text-center">
                         <p className="text-xs font-mono font-bold text-on-surface-variant flex items-center justify-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px] text-outline">history_toggle_off</span>
+                          <Clock className="w-4 h-4 text-outline" />
                           <span>Return window closed (7 days from delivery)</span>
                         </p>
                       </div>
@@ -923,7 +939,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                     return (
                       <div className="w-full mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center dark:bg-blue-950/30 dark:border-blue-800">
                         <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200 flex items-center justify-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px] text-blue-600">assignment_turned_in</span>
+                          <CheckCircle2 className="w-4 h-4 text-blue-600" />
                           <span>All items in return process / returned</span>
                         </p>
                       </div>
@@ -990,7 +1006,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
                 <p className="text-[11px] sm:text-xs text-on-surface-variant font-mono truncate">Order #{order.orderNumber}</p>
               </div>
               <button onClick={() => setIsCancelModalOpen(false)} className="p-2 -mr-1 min-w-[40px] min-h-[40px] flex items-center justify-center hover:bg-surface-container rounded-full text-on-surface-variant shrink-0">
-                <span className="material-symbols-outlined text-lg">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1003,7 +1019,7 @@ export function OrderDetailsClient({ orderId }: { orderId: string }) {
               {cancelMode === "ITEMS" && isBelowThresholdBlocked() && (
                 <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
                   <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                    <span className="material-symbols-outlined text-sm">warning</span>
+                    <AlertTriangle className="w-4 h-4" />
                     Free Delivery Threshold Notice
                   </div>
                   <p className="leading-relaxed">

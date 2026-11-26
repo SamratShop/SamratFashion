@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -389,7 +389,7 @@ export function GoogleAuthButton({
           <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-primary font-bold">
-                <span className="material-symbols-outlined text-[22px]">shield_person</span>
+                <Shield className="w-5 h-5" />
                 <h3 className="text-base font-bold text-on-surface">Link Admin Account</h3>
               </div>
               <p className="text-xs text-on-surface-variant leading-relaxed">

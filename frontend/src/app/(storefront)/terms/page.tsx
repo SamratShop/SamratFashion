@@ -18,7 +18,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 text-on-surface">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="max-w-4xl mx-auto px-4 py-12 text-on-surface outline-none"
+    >
       <h1 className="text-3xl font-extrabold mb-6">Terms &amp; Conditions</h1>
       <div className="space-y-4 text-on-surface-variant leading-relaxed">
         <p>Welcome to <strong>Samrat Fashion</strong>.</p>
@@ -51,6 +55,6 @@ export default function TermsPage() {
           <Link href="/" className="text-primary hover:underline font-bold">← Back to Store</Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

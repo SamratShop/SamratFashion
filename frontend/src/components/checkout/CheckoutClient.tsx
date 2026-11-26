@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, Plus, X } from "lucide-react";
+import { CheckCircle2, Circle, Plus, X, CheckCircle, MapPinOff, Truck, Lock } from "lucide-react";
 import Image from "next/image";
 
 import Script from "next/script";
@@ -296,7 +296,11 @@ export function CheckoutClient() {
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 grid grid-cols-1 lg:grid-cols-12 gap-gutter outline-none"
+      >
       {/* Left Column: Checkout Steps */}
       <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
         
@@ -365,9 +369,11 @@ export function CheckoutClient() {
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
                 : 'bg-red-50 border-red-200 text-red-800'
             }`}>
-              <span className="material-symbols-outlined text-base">
-                {serviceability.serviceable ? 'verified' : 'distance'}
-              </span>
+              {serviceability.serviceable ? (
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : (
+                <MapPinOff className="w-4 h-4 text-red-600 shrink-0" />
+              )}
               <div>
                 {serviceability.serviceable ? (
                   <>
@@ -415,7 +421,7 @@ export function CheckoutClient() {
             </span>
           </div>
           <div className="p-4 rounded-md border border-outline-variant/40 bg-surface-container-low flex items-start gap-3 text-xs font-mono">
-            <span className="material-symbols-outlined text-primary text-base">local_shipping</span>
+            <Truck className="w-4 h-4 text-primary shrink-0" />
             <div className="space-y-1">
               <p className="font-bold text-on-surface">Express Courier Delivery (Trusted Logistics Partners)</p>
               <p className="text-neutral-500">Orders are processed and dispatched from our primary studio within 24-48 business hours.</p>
@@ -551,7 +557,7 @@ export function CheckoutClient() {
             </button>
             
             <div className="mt-4 flex items-center justify-center gap-1.5 font-mono text-[11px] text-neutral-500">
-              <span className="material-symbols-outlined text-emerald-600 text-sm">lock</span>
+              <Lock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>100% Encrypted Payment via Razorpay</span>
             </div>
           </div>

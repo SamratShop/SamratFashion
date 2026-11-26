@@ -218,9 +218,9 @@ export default function CustomerReviewsClient() {
                 <FileText className="w-8 h-8 text-neutral-700 stroke-[1.5]" />
               </div>
               <div>
-                <h3 className="font-headline-sm text-lg font-bold text-on-surface uppercase tracking-tight">
+                <h2 className="font-headline-sm text-lg font-bold text-on-surface uppercase tracking-tight">
                   No Pending Items To Review
-                </h3>
+                </h2>
                 <p className="text-xs sm:text-sm text-on-surface-variant mt-1.5 max-w-sm mx-auto leading-relaxed">
                   Items from your delivered orders will automatically appear here once delivered.
                 </p>
@@ -273,12 +273,12 @@ export default function CustomerReviewsClient() {
           {reviews.length === 0 ? (
             <div className="text-center py-12 px-6 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl max-w-lg mx-auto shadow-xs space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-surface-container-low text-neutral-700 flex items-center justify-center mx-auto border border-outline-variant/40">
-                <span className="material-symbols-outlined text-3xl">star</span>
+                <Star className="w-8 h-8 text-neutral-700 stroke-[1.5]" />
               </div>
               <div>
-                <h3 className="font-headline-sm text-lg font-bold text-on-surface uppercase tracking-tight">
+                <h2 className="font-headline-sm text-lg font-bold text-on-surface uppercase tracking-tight">
                   No Reviews Written Yet
-                </h3>
+                </h2>
                 <p className="text-xs sm:text-sm text-on-surface-variant mt-1.5 max-w-sm mx-auto leading-relaxed">
                   Share feedback on your delivered pieces to help other shoppers find their ideal fit.
                 </p>
@@ -298,7 +298,7 @@ export default function CustomerReviewsClient() {
               <div key={rev._id} className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm flex flex-col gap-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-base text-on-surface">{rev.productId?.name || "Product"}</h4>
+                    <h3 className="font-bold text-base text-on-surface">{rev.productId?.name || "Product"}</h3>
                     <div className="flex items-center gap-1 mt-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
@@ -324,7 +324,7 @@ export default function CustomerReviewsClient() {
                   </span>
                 </div>
 
-                {rev.title && <h5 className="font-bold text-sm text-on-surface mt-1">{rev.title}</h5>}
+                {rev.title && <h4 className="font-bold text-sm text-on-surface mt-1">{rev.title}</h4>}
                 <p className="text-sm text-on-surface-variant">{rev.body}</p>
 
                 {/* Photos */}
@@ -351,7 +351,7 @@ export default function CustomerReviewsClient() {
           <div className="bg-surface-container-lowest w-full max-w-lg rounded-2xl shadow-2xl border border-outline-variant/20 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
               <div>
-                <h3 className="font-bold text-lg text-on-surface">Review Your Purchase</h3>
+                <h2 className="font-bold text-lg text-on-surface">Review Your Purchase</h2>
                 <p className="text-xs text-on-surface-variant font-label-caps">{selectedItem.productName}</p>
               </div>
               <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant">

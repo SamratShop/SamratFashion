@@ -133,7 +133,11 @@ export default function CustomerNotificationsPage() {
 
   if (authLoading || (!isAuthenticated && loading)) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 outline-none"
+      >
         <div className="max-w-2xl mx-auto space-y-4 animate-pulse">
           <div className="h-8 w-48 bg-surface-container rounded-lg" />
           <div className="h-64 bg-surface-container rounded-2xl" />
@@ -143,7 +147,11 @@ export default function CustomerNotificationsPage() {
   }
 
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 sm:py-12">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 sm:py-12 outline-none"
+    >
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Navigation & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
