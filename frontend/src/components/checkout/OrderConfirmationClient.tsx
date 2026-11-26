@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrderStore } from "@/store/useOrderStore";
-import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2, Bell, X } from "lucide-react";
+import { CheckCircle2, Package, Truck, Home, MapPin, AlertCircle, RefreshCw, Share2, Bell, X, Download } from "lucide-react";
 import { ShareTrackingModal } from "@/components/orders/ShareTrackingModal";
 import Image from "next/image";
 import { subscribeToPush, isPushSupported, getPushPermission } from "@/lib/pushNotifications";
@@ -451,7 +451,7 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
               onClick={() => downloadOrViewInvoicePdf(order._id, `Invoice-${order.orderNumber}.pdf`)}
               className="w-full md:w-auto px-8 bg-surface-container border border-outline-variant/60 text-on-surface hover:bg-surface-container-high font-mono text-xs uppercase tracking-wider font-bold py-3.5 rounded-md transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined text-base">download</span>
+              <Download className="w-4 h-4" />
               <span>DOWNLOAD TAX INVOICE</span>
             </button>
           )}
