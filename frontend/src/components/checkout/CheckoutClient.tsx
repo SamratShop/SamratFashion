@@ -350,18 +350,22 @@ export function CheckoutClient() {
     }
   };
 
+  // 1. Initial auth verification - display layout-matching skeleton to prevent layout shift (CLS)
   if (authLoading) {
     return <CheckoutSkeleton />;
   }
 
+  // 2. Unauthenticated state - redirect to login / sign-in prompt
   if (!isAuthenticated) {
     return <SignInRequiredState context="checkout" redirectPath="/checkout" />;
   }
 
+  // 3. Cart loading state - keep the skeleton until cart items arrive
   if (isLoadingCart && items.length === 0) {
     return <CheckoutSkeleton />;
   }
 
+  // 4. Empty cart guard - prompt to continue shopping
   if (items.length === 0) {
     return (
       <main id="main-content" tabIndex={-1} className="min-h-screen flex flex-col items-center justify-center outline-none">
