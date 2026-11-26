@@ -216,7 +216,7 @@ export function NotificationBell() {
         onClick={handleToggle}
         aria-label={`Notifications (${unreadCount} unread)`}
         aria-expanded={isOpen}
-        className="relative p-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer rounded-full hover:bg-surface-container/50 focus-visible:outline-2 focus-visible:outline-primary"
+        className="relative w-12 h-12 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer rounded-full hover:bg-surface-container/50 focus-visible:outline-2 focus-visible:outline-primary"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (

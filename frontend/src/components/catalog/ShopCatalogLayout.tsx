@@ -720,7 +720,7 @@ export function ShopCatalogLayout({
               aria-label={isCollapsed ? "Expand filter sidebar" : "Collapse filter sidebar"}
               aria-expanded={!isCollapsed}
               aria-controls="shop-filter-sidebar"
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-mono text-xs font-bold transition-all border shrink-0 active:scale-95 cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 min-h-[48px] rounded-lg font-mono text-xs font-bold transition-all border shrink-0 active:scale-95 cursor-pointer ${
                 !isCollapsed || activeFiltersCount > 0
                   ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
                   : "bg-surface text-on-surface border-outline-variant/50 hover:border-neutral-900"
@@ -788,7 +788,7 @@ export function ShopCatalogLayout({
                   value={optimisticSort ?? currentSort}
                   onChange={handleSortChange}
                   aria-label="Sort products by"
-                  className="appearance-none bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-8 py-1.5 text-xs font-mono text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                  className="appearance-none bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-8 py-2.5 min-h-[48px] text-xs font-mono text-on-surface focus:outline-none focus:border-primary cursor-pointer"
                 >
                   <option value="">Featured</option>
                   <option value="-createdAt">Newest First</option>
@@ -998,7 +998,8 @@ export function ShopCatalogLayout({
                 {products.map((product, idx) => (
                   <ProductCard
                     key={product.cardKey || (product.selectedColor ? `${product._id}-${product.selectedColor}` : product._id)}
-                    priority={idx < 4}
+                    priority={idx < 3}
+                    fetchPriority={idx === 0 ? "high" : "auto"}
                     {...product}
                   />
                 ))}
@@ -1120,14 +1121,14 @@ export function ShopCatalogLayout({
                     handleClearAll();
                     setIsMobileDrawerOpen(false);
                   }}
-                  className="flex-1 py-3 border border-outline-variant/50 font-mono text-xs uppercase tracking-wider font-bold rounded-lg text-on-surface hover:bg-surface-container-low active:scale-95 transition-all min-h-[44px] cursor-pointer"
+                  className="flex-1 py-3 border border-outline-variant/50 font-mono text-xs uppercase tracking-wider font-bold rounded-lg text-on-surface hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px] cursor-pointer"
                 >
                   Clear All
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="flex-1 py-3 bg-neutral-900 text-white font-mono text-xs uppercase tracking-wider font-bold rounded-lg shadow-sm hover:bg-neutral-800 active:scale-95 transition-all min-h-[44px] flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-3 bg-neutral-900 text-white font-mono text-xs uppercase tracking-wider font-bold rounded-lg shadow-sm hover:bg-neutral-800 active:scale-95 transition-all min-h-[48px] flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isPending ? (
                     <>

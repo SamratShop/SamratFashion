@@ -145,11 +145,11 @@ export function HeroBannerSlider({
 
     switch (currentBanner.overlayStrength) {
       case "LIGHT":
-        return "bg-gradient-to-t from-neutral-950/75 via-neutral-950/25 to-transparent";
-      case "HEAVY":
-        return "bg-gradient-to-t from-neutral-950/95 via-neutral-950/65 to-neutral-950/20";
-      default: // MEDIUM
         return "bg-gradient-to-t from-neutral-950/85 via-neutral-950/45 to-transparent";
+      case "HEAVY":
+        return "bg-gradient-to-t from-neutral-950/98 via-neutral-950/80 to-neutral-950/40";
+      default: // MEDIUM
+        return "bg-gradient-to-t from-neutral-950/95 via-neutral-950/65 to-neutral-950/25";
     }
   };
 
@@ -206,6 +206,7 @@ export function HeroBannerSlider({
                     fill
                     priority={currentIndex === 0}
                     loading={currentIndex === 0 ? "eager" : "lazy"}
+                    fetchPriority={currentIndex === 0 ? "high" : "auto"}
                     sizes="100vw"
                     className="object-cover object-center"
                   />
@@ -217,6 +218,7 @@ export function HeroBannerSlider({
                     fill
                     priority={currentIndex === 0}
                     loading={currentIndex === 0 ? "eager" : "lazy"}
+                    fetchPriority={currentIndex === 0 ? "high" : "auto"}
                     sizes="100vw"
                     className="object-cover object-center"
                   />
@@ -230,6 +232,7 @@ export function HeroBannerSlider({
                   fill
                   priority={currentIndex === 0}
                   loading={currentIndex === 0 ? "eager" : "lazy"}
+                  fetchPriority={currentIndex === 0 ? "high" : "auto"}
                   sizes="100vw"
                   className="object-cover object-center"
                 />
@@ -264,7 +267,7 @@ export function HeroBannerSlider({
                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-md ${
                         isDarkText
                           ? "bg-neutral-900/10 border border-neutral-900/20 text-neutral-900"
-                          : "bg-white/10 border border-white/20 text-white"
+                          : "bg-neutral-950/70 border border-neutral-700/60 text-white shadow-xs"
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -289,7 +292,7 @@ export function HeroBannerSlider({
                   {currentBanner.subtitle && (
                     <p
                       className={`font-body-md text-sm sm:text-base md:text-lg max-w-xl line-clamp-2 leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)] ${
-                        isDarkText ? "text-neutral-800 drop-shadow-none" : "text-neutral-200"
+                        isDarkText ? "text-neutral-800 drop-shadow-none" : "text-neutral-100"
                       }`}
                     >
                       {currentBanner.subtitle}

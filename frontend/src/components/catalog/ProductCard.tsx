@@ -36,6 +36,7 @@ export interface ProductCardProps {
   selectedColorHex?: string;
   variantId?: string | null;
   priority?: boolean;
+  fetchPriority?: "high" | "low" | "auto";
 }
 
 export function ProductCard({
@@ -59,6 +60,7 @@ export function ProductCard({
   selectedColorHex,
   variantId,
   priority = false,
+  fetchPriority,
 }: ProductCardProps) {
   const actualProductId = productId || (/^[0-9a-fA-F]{24}-/.test(_id) ? _id.slice(0, 24) : _id);
   const variantImages = (variants || []).flatMap((v) => (v && "images" in v && Array.isArray(v.images) ? (v.images as string[]) : [])).filter(Boolean);
@@ -144,6 +146,7 @@ export function ProductCard({
             fill
             priority={priority}
             loading={priority ? "eager" : "lazy"}
+            fetchPriority={fetchPriority || (priority ? "high" : "auto")}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="product-img-primary absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
           />

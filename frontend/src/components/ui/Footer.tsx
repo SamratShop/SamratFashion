@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone, Clock, MapPin } from "lucide-react";
+import { Mail, Phone, Clock, MapPin, Truck, Shirt, ShieldCheck, Lock } from "lucide-react";
 import { CategoryItem, filterStorefrontCategories } from "@/lib/catalog";
 import { NewsletterForm } from "./NewsletterForm";
 import { useStoreSettings } from "@/lib/useStoreSettings";
@@ -19,7 +19,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
         <div className="max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           <div className="flex items-start gap-2.5 sm:gap-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-base sm:text-lg">local_shipping</span>
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
             <div>
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Free Express Shipping</p>
@@ -28,7 +28,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
           </div>
           <div className="flex items-start gap-2.5 sm:gap-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-base sm:text-lg">apparel</span>
+              <Shirt className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
             <div>
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Tailored Craftsmanship</p>
@@ -37,7 +37,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
           </div>
           <div className="flex items-start gap-2.5 sm:gap-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-base sm:text-lg">verified</span>
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
             <div>
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">7-Day Easy Returns</p>
@@ -46,7 +46,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
           </div>
           <div className="flex items-start gap-2.5 sm:gap-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-base sm:text-lg">lock</span>
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
             <div>
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Secure Payments</p>

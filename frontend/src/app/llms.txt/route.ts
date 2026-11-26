@@ -158,7 +158,7 @@ export async function GET() {
 
       const lines = [
         `### ${p.name}`,
-        `- URL: ${productUrl}`,
+        `- [${p.name}](${productUrl})`,
         `- Price: ${priceStr}`,
       ];
 
@@ -203,12 +203,12 @@ export async function GET() {
 - Customer Support: support@samratfashion.com | +91-62621-27724
 
 ## Key Pages
-- Shop: ${baseUrl}/shop
-- Offers: ${baseUrl}/offers
-- Customer Support: ${baseUrl}/support
-- Shipping & Returns: ${baseUrl}/shipping-returns
-- Terms of Service: ${baseUrl}/terms
-- Privacy Policy: ${baseUrl}/privacy
+- [Shop](${baseUrl}/shop)
+- [Offers](${baseUrl}/offers)
+- [Customer Support](${baseUrl}/support)
+- [Shipping & Returns](${baseUrl}/shipping-returns)
+- [Terms of Service](${baseUrl}/terms)
+- [Privacy Policy](${baseUrl}/privacy)
 
 ## Products
 ${productSections}

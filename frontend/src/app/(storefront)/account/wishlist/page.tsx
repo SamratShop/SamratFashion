@@ -21,7 +21,11 @@ export default function WishlistPage() {
 
   if (authLoading) {
     return (
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-6 pb-12 sm:pb-16 lg:pb-10">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-6 pb-12 sm:pb-16 lg:pb-10 outline-none"
+      >
         <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8">
           <AccountNav currentTab="wishlist" />
           <div className="py-20 flex justify-center">
@@ -37,7 +41,11 @@ export default function WishlistPage() {
   }
 
   return (
-    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-6 pb-12 sm:pb-16 lg:pb-10">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-6 pb-12 sm:pb-16 lg:pb-10 outline-none"
+    >
       <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8">
         <AccountNav currentTab="wishlist" activeCount={items.length} />
 
@@ -62,8 +70,23 @@ export default function WishlistPage() {
           </div>
         </div>
 
-        {/* Empty State Card (Keeps AccountNav intact!) */}
-        {!isLoading && items.length === 0 ? (
+        {/* Loading Skeleton */}
+        {isLoading && items.length === 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {[1, 2, 3, 4].map((skeletonIdx) => (
+              <div
+                key={skeletonIdx}
+                className="bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/40 animate-pulse"
+              >
+                <div className="aspect-[3/4] bg-surface-container" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-surface-container rounded" />
+                  <div className="h-4 w-1/3 bg-surface-container rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !isLoading && items.length === 0 ? (
           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-6 shadow-2xs">
             <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-5 text-on-surface-variant">
               <HeartCrack className="w-9 h-9" />

@@ -6,13 +6,27 @@ import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { getActiveCategories, filterStorefrontCategories, CategoryItem } from "@/lib/catalog";
 import * as motion from "motion/react-client";
+import dynamic from "next/dynamic";
 import { HeroBannerSlider, HeroBannerItem } from "@/components/storefront/HeroBannerSlider";
 import { MarqueeTicker } from "@/components/storefront/MarqueeTicker";
 import { CategoryPillNav } from "@/components/storefront/CategoryPillNav";
-import { TabbedDropsSection } from "@/components/storefront/TabbedDropsSection";
-import { GarmentAnatomySection } from "@/components/storefront/GarmentAnatomySection";
-import { InteractiveCampaignCards } from "@/components/storefront/InteractiveCampaignCards";
-import { TrustPillarsBar } from "@/components/storefront/TrustPillarsBar";
+
+const TabbedDropsSection = dynamic(
+  () => import("@/components/storefront/TabbedDropsSection").then((m) => m.TabbedDropsSection),
+  { ssr: true }
+);
+const GarmentAnatomySection = dynamic(
+  () => import("@/components/storefront/GarmentAnatomySection").then((m) => m.GarmentAnatomySection),
+  { ssr: true }
+);
+const InteractiveCampaignCards = dynamic(
+  () => import("@/components/storefront/InteractiveCampaignCards").then((m) => m.InteractiveCampaignCards),
+  { ssr: true }
+);
+const TrustPillarsBar = dynamic(
+  () => import("@/components/storefront/TrustPillarsBar").then((m) => m.TrustPillarsBar),
+  { ssr: true }
+);
 import { ProductCardProps } from "@/components/catalog/ProductCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getBreadcrumbJsonLd, getFaqPageJsonLd, getCategoryFaqs } from "@/lib/seo";
