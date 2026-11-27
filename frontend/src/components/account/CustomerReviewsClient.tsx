@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { useAuthStore } from "@/store/useAuthStore";
-import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { AccountNav } from "@/components/account/AccountNav";
 import { Star, Edit3, X, FileText } from "lucide-react";
 
-interface ReviewedItem {
+export interface ReviewedItem {
   _id: string;
   rating: number;
   title?: string;
@@ -24,7 +22,7 @@ interface ReviewedItem {
   };
 }
 
-interface UnreviewedItem {
+export interface UnreviewedItem {
   orderId: string;
   orderNumber: string;
   orderItemId: string;
@@ -34,14 +32,18 @@ interface UnreviewedItem {
   deliveredAt: string;
 }
 
-export default function CustomerReviewsClient() {
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+export interface CustomerReviewsClientProps {
+  initialReviews?: ReviewedItem[];
+  initialUnreviewedItems?: UnreviewedItem[];
+}
 
+export default function CustomerReviewsClient({
+  initialReviews = [],
+  initialUnreviewedItems = [],
+}: CustomerReviewsClientProps) {
   const [activeTab, setActiveTab] = useState<"TO_REVIEW" | "REVIEWED">("TO_REVIEW");
-  const [reviews, setReviews] = useState<ReviewedItem[]>([]);
-  const [unreviewedItems, setUnreviewedItems] = useState<UnreviewedItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<ReviewedItem[]>(initialReviews);
+  const [unreviewedItems, setUnreviewedItems] = useState<UnreviewedItem[]>(initialUnreviewedItems);
 
   // Modal Review Composer State
   const [selectedItem, setSelectedItem] = useState<UnreviewedItem | null>(null);
@@ -53,27 +55,6 @@ export default function CustomerReviewsClient() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{ text: string; type: "success" | "error" } | null>(null);
-
-  // Fetch Customer Reviews
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-    async function fetchReviews() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await api.get("/reviews/my-reviews");
-        if (res.data?.success) {
-          setReviews(res.data.data.reviews || []);
-          setUnreviewedItems(res.data.data.unreviewedItems || []);
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load reviews.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchReviews();
-  }, [authLoading, isAuthenticated]);
 
   const handleAddPhoto = () => {
     if (!photoUrl.trim() || photos.length >= 4) return;
@@ -124,50 +105,6 @@ export default function CustomerReviewsClient() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
-        <AccountNav currentTab="reviews" />
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
-          <div>
-            <div className="flex items-center gap-3 mb-1.5 flex-wrap min-h-[36px]">
-              <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
-                MY REVIEWS
-              </h1>
-              <div className="h-5 w-20 bg-surface-container rounded-md" />
-            </div>
-            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
-              Share your thoughts on delivered pieces and help other customers find their perfect fit.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-4 sm:gap-8 mb-8 border-b border-outline-variant/30">
-          <div className="pb-3 h-8 w-24 bg-surface-container rounded" />
-          <div className="pb-3 h-8 w-24 bg-surface-container rounded" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[220px]">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 min-h-[180px] flex items-center gap-4"
-            >
-              <div className="w-24 h-24 rounded-xl bg-surface-container shrink-0" />
-              <div className="space-y-3 flex-1">
-                <div className="h-5 w-3/4 bg-surface-container rounded" />
-                <div className="h-4 w-1/2 bg-surface-container-low rounded" />
-                <div className="h-4 w-1/3 bg-surface-container-low rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <SignInRequiredState context="reviews" redirectPath="/account/reviews" />;
-  }
-
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8">
       {/* Toast Notification */}
@@ -192,13 +129,11 @@ export default function CustomerReviewsClient() {
               MY REVIEWS
             </h1>
             <span className="inline-flex items-center min-h-[22px]">
-              {isLoading ? (
-                <span className="h-5 w-20 bg-surface-container rounded-md inline-block animate-pulse" />
-              ) : reviews.length > 0 ? (
+              {reviews.length > 0 && (
                 <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md tabular-nums">
                   {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
                 </span>
-              ) : null}
+              )}
             </span>
           </div>
           <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
@@ -237,30 +172,8 @@ export default function CustomerReviewsClient() {
         </button>
       </div>
 
-      {isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[220px] animate-pulse">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 min-h-[180px] flex items-center gap-4"
-            >
-              <div className="w-24 h-24 rounded-xl bg-surface-container shrink-0" />
-              <div className="space-y-3 flex-1">
-                <div className="h-5 w-3/4 bg-surface-container rounded" />
-                <div className="h-4 w-1/2 bg-surface-container-low rounded" />
-                <div className="h-4 w-1/3 bg-surface-container-low rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-error-container text-on-error-container rounded-xl text-center font-bold mb-6">{error}</div>
-      )}
-
       {/* Unreviewed Products Grid (To Review Tab) */}
-      {!isLoading && !error && activeTab === "TO_REVIEW" && (
+      {activeTab === "TO_REVIEW" && (
         <div>
           {unreviewedItems.length === 0 ? (
             <div className="text-center py-12 px-6 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl max-w-lg mx-auto shadow-xs space-y-4">
@@ -318,7 +231,7 @@ export default function CustomerReviewsClient() {
       )}
 
       {/* Reviewed List (Reviewed Tab) */}
-      {!isLoading && !error && activeTab === "REVIEWED" && (
+      {activeTab === "REVIEWED" && (
         <div>
           {reviews.length === 0 ? (
             <div className="text-center py-12 px-6 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl max-w-lg mx-auto shadow-xs space-y-4">
