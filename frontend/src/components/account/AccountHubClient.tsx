@@ -19,22 +19,43 @@ import {
   Heart,
   CircleHelp,
 } from "lucide-react";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore, type User } from "@/store/useAuthStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAddressStore } from "@/store/useAddressStore";
-import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { AccountNav } from "@/components/account/AccountNav";
 import { api } from "@/lib/api";
 
-export default function AccountHubClient() {
+export interface AccountHubClientProps {
+  initialUser: User;
+  initialOrdersCount: number;
+  initialReviewsCount: number;
+}
+
+export default function AccountHubClient({
+  initialUser,
+  initialOrdersCount,
+  initialReviewsCount,
+}: AccountHubClientProps) {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuthStore();
+  const { user: authUser, setUser, logout } = useAuthStore();
   const wishlistItems = useWishlistStore((state) => state.items);
   const { addresses, fetchAddresses } = useAddressStore();
 
-  const [ordersCount, setOrdersCount] = useState<number>(0);
-  const [reviewsCount, setReviewsCount] = useState<number>(0);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const user = authUser || initialUser;
+  const ordersCount = initialOrdersCount;
+  const reviewsCount = initialReviewsCount;
+
+  // Sync initial user into auth store if auth store has not initialized yet
+  useEffect(() => {
+    if (!authUser && initialUser) {
+      setUser(initialUser);
+    }
+  }, [authUser, initialUser, setUser]);
+
+  // Load addresses for address actions
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
 
   // Profile Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -85,104 +106,6 @@ export default function AccountHubClient() {
       setIsSavingProfile(false);
     }
   };
-
-  // Fetch Account Summary Data
-  useEffect(() => {
-    async function fetchAccountData() {
-      if (!isAuthenticated) return;
-      setIsDataLoading(true);
-      fetchAddresses();
-      try {
-        const [ordersRes, reviewsRes] = await Promise.allSettled([
-          api.get("/orders"),
-          api.get("/reviews/my-reviews"),
-        ]);
-
-        if (
-          ordersRes.status === "fulfilled" &&
-          (ordersRes.value.data?.success || ordersRes.value.data?.status === "success")
-        ) {
-          const ords = ordersRes.value.data.data;
-          setOrdersCount(Array.isArray(ords) ? ords.length : 0);
-        }
-        if (
-          reviewsRes.status === "fulfilled" &&
-          (reviewsRes.value.data?.success || reviewsRes.value.data?.status === "success")
-        ) {
-          const rvs = reviewsRes.value.data.data;
-          const count = Array.isArray(rvs)
-            ? rvs.length
-            : Array.isArray(rvs?.reviews)
-            ? rvs.reviews.length
-            : 0;
-          setReviewsCount(count);
-        }
-
-      } catch (err) {
-        console.error("Failed to load account summary stats", err);
-      } finally {
-        setIsDataLoading(false);
-      }
-    }
-    fetchAccountData();
-  }, [isAuthenticated]);
-
-  if (authLoading || (isAuthenticated && isDataLoading)) {
-    return (
-      <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 sm:space-y-8 pb-8 sm:pb-12 lg:pb-8 animate-pulse">
-        <AccountNav currentTab="overview" />
-        {/* Header Profile Summary Card Skeleton */}
-        <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 min-h-[140px]">
-          <div className="flex items-center gap-5 w-full md:w-auto">
-            <div className="w-16 h-16 rounded-full bg-surface-container shrink-0" />
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="h-7 w-48 max-w-full bg-surface-container rounded" />
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                <div className="h-4 w-36 bg-surface-container rounded" />
-                <div className="h-4 w-28 bg-surface-container rounded" />
-                <div className="h-4 w-20 bg-surface-container rounded-full" />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="h-10 bg-surface-container rounded-xl flex-1 md:w-28 md:flex-initial" />
-            <div className="h-10 bg-surface-container rounded-xl flex-1 md:w-28 md:flex-initial" />
-          </div>
-        </div>
-
-        {/* Stat Cards Skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm min-h-[96px] h-[96px] flex flex-col justify-between">
-              <div className="h-3 w-16 bg-surface-container rounded mb-1" />
-              <div className="h-8 w-12 bg-surface-container rounded" />
-            </div>
-          ))}
-        </div>
-
-        {/* Service Cards Skeleton */}
-        <div>
-          <div className="h-6 w-40 bg-surface-container rounded mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm flex items-start gap-4 min-h-[136px]">
-                <div className="w-12 h-12 rounded-xl bg-surface-container shrink-0" />
-                <div className="space-y-2 flex-1">
-                  <div className="h-5 w-28 bg-surface-container rounded" />
-                  <div className="h-3 w-full bg-surface-container rounded" />
-                  <div className="h-3 w-3/4 bg-surface-container rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <SignInRequiredState context="account" redirectPath="/account" />;
-  }
 
   const initials = user?.name
     ? user.name
@@ -400,11 +323,7 @@ export default function AccountHubClient() {
           <Link href="/account/orders" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Orders</p>
             <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
-              {isDataLoading ? (
-                <span className="inline-block h-7 w-10 rounded bg-surface-container-high animate-pulse align-middle" aria-label="Loading orders count" />
-              ) : (
-                ordersCount
-              )}
+              {ordersCount}
             </div>
           </Link>
 
@@ -425,11 +344,7 @@ export default function AccountHubClient() {
           <Link href="/account/reviews" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Reviews</p>
             <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
-              {isDataLoading ? (
-                <span className="inline-block h-7 w-10 rounded bg-surface-container-high animate-pulse align-middle" aria-label="Loading reviews count" />
-              ) : (
-                reviewsCount
-              )}
+              {reviewsCount}
             </div>
           </Link>
         </div>
