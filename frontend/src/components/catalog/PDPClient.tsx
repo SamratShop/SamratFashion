@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback, useTransition } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { Star, Heart, Truck, Ruler, ShoppingBag, Loader2, ZoomIn, X, ChevronLeft, ChevronRight, ShieldCheck, RotateCcw, Check, ArrowRight, Share2, ChevronDown, HelpCircle, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { ProductCard, ProductCardProps } from "@/components/catalog/ProductCard";
+import type { ProductCardProps } from "@/components/catalog/ProductCard";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, isItemInWishlist } from "@/store/useWishlistStore";
@@ -24,6 +23,14 @@ const SizeGuideModal = dynamic(
 const ProductShareModal = dynamic(
   () => import("@/components/catalog/ProductShareModal").then((m) => m.ProductShareModal),
   { ssr: true }
+);
+const PDPRecommendations = dynamic(
+  () => import("@/components/catalog/PDPRecommendations"),
+  { ssr: true }
+);
+const PDPLightboxModal = dynamic(
+  () => import("@/components/catalog/PDPLightboxModal"),
+  { ssr: false }
 );
 import { useStoreSettings } from "@/lib/useStoreSettings";
 import { formatFreeShippingRule } from "@/lib/storeSettingsDefaults";
@@ -324,10 +331,6 @@ export function PDPClient({
   const [loadedHeroSrc, setLoadedHeroSrc] = useState<string | null>(null);
   const isHeroImageLoading = Boolean(heroImageSrc) && loadedHeroSrc !== heroImageSrc;
 
-  const lightboxImageSrc = currentGalleryImages[lightboxIndex] || currentGalleryImages[0] || "";
-  const [loadedLightboxSrc, setLoadedLightboxSrc] = useState<string | null>(null);
-  const isLightboxImageLoading = Boolean(lightboxImageSrc) && loadedLightboxSrc !== lightboxImageSrc;
-
   const beginSwitch = useCallback((kind: "color" | "size", value: string) => {
     switchStartedAtRef.current = Date.now();
     setPendingSwitch({ kind, value });
@@ -589,91 +592,18 @@ export function PDPClient({
     setIsLightboxOpen(true);
   };
   const closeLightbox = () => setIsLightboxOpen(false);
-  const lightboxPrev = () => setLightboxIndex((i) => (i - 1 + currentGalleryImages.length) % currentGalleryImages.length);
-  const lightboxNext = () => setLightboxIndex((i) => (i + 1) % currentGalleryImages.length);
 
   return (
     <>
       {/* Lightbox Modal */}
-      <AnimatePresence>
-        {isLightboxOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
-            onClick={closeLightbox}
-          >
-            <button
-              onClick={closeLightbox}
-              className="absolute top-5 right-5 text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition-colors hover:bg-white/20 z-10"
-              aria-label="Close lightbox"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            {currentGalleryImages.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-colors hover:bg-white/20 z-10"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-colors hover:bg-white/20 z-10"
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              </>
-            )}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-2xl max-h-[90vh] mx-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Image
-                src={currentGalleryImages[lightboxIndex] || currentGalleryImages[0]}
-                alt={`${product.name} – full view`}
-                width={900}
-                height={1200}
-                className="object-contain w-full max-h-[90vh] rounded-lg select-none"
-                priority
-                onLoad={() => setLoadedLightboxSrc(lightboxImageSrc)}
-                onError={() => setLoadedLightboxSrc(lightboxImageSrc)}
-              />
-              <div
-                aria-hidden="true"
-                className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${
-                  isLightboxImageLoading ? "opacity-100 delay-100" : "opacity-0 delay-0"
-                }`}
-              >
-                <Loader2 className="w-8 h-8 animate-spin text-white/80" />
-              </div>
-              {currentGalleryImages.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  {currentGalleryImages.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setLightboxIndex(i)}
-                      className={`w-1.5 h-1.5 rounded-full transition-[background-color,transform] duration-200 ${
-                        i === lightboxIndex ? "bg-white scale-125" : "bg-white/40 hover:bg-white/70"
-                      }`}
-                      aria-label={`View image ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isLightboxOpen && (
+        <PDPLightboxModal
+          onClose={closeLightbox}
+          images={currentGalleryImages}
+          initialIndex={lightboxIndex}
+          productName={product.name}
+        />
+      )}
 
     <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 max-w-container-max mx-auto w-full pb-20 lg:pb-12 items-start">
 
@@ -747,29 +677,23 @@ export function PDPClient({
               }
             }}
           >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentGalleryImages[selectedImage] || selectedImage}
-                initial={{ opacity: 0.7 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0.7 }}
-                transition={{ duration: 0.2 }}
-                className="relative w-full h-full"
-              >
-                <Image
-                  src={currentGalleryImages[selectedImage] || currentGalleryImages[0]}
-                  alt={product.name}
-                  fill
-                  className="object-contain transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
-                  priority
-                  loading="eager"
-                  fetchPriority="high"
-                  sizes="(max-width: 768px) 100vw, 55vw"
-                  onLoad={() => setLoadedHeroSrc(heroImageSrc)}
-                  onError={() => setLoadedHeroSrc(heroImageSrc)}
-                />
-              </motion.div>
-            </AnimatePresence>
+            <div
+              key={currentGalleryImages[selectedImage] || selectedImage}
+              className="relative w-full h-full transition-opacity duration-150 ease-out"
+            >
+              <Image
+                src={currentGalleryImages[selectedImage] || currentGalleryImages[0]}
+                alt={product.name}
+                fill
+                className="object-contain transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
+                priority
+                loading="eager"
+                fetchPriority="high"
+                sizes="(max-width: 768px) 100vw, 55vw"
+                onLoad={() => setLoadedHeroSrc(heroImageSrc)}
+                onError={() => setLoadedHeroSrc(heroImageSrc)}
+              />
+            </div>
 
             {/* Loading veil – only fades in if the image takes longer than ~100ms,
                 so cached swaps stay flicker-free while slow ones stay explained. */}
@@ -1140,7 +1064,7 @@ export function PDPClient({
                           Switching…
                         </p>
                       ) : isSelected ? (
-                        <p className="text-[10px] font-mono mt-0.5 text-emerald-700 font-bold flex items-center gap-1">
+                        <p className="text-[10px] font-mono mt-0.5 text-emerald-800 font-bold flex items-center gap-1">
                           <Check className="w-3 h-3 stroke-[2.5]" />
                           <span>Selected</span>
                         </p>
@@ -1241,12 +1165,11 @@ export function PDPClient({
                 <span>IN BAG · VIEW CART</span>
               </button>
             ) : (
-              <motion.button
+              <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!selectedVariant || !isSelectedVariantAvailable || isCartLoading}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2 border-2 border-neutral-950 bg-white text-neutral-950 hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg active:scale-[0.98] transition-[background-color,opacity,transform] flex items-center justify-center gap-2 border-2 border-neutral-950 bg-white text-neutral-950 hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isCartLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1256,17 +1179,16 @@ export function PDPClient({
                 <span>
                   {isCartLoading ? "ADDING..." : "ADD TO CART"}
                 </span>
-              </motion.button>
+              </button>
             )}
           </div>
 
           {/* Row 2: Instant Buy Now (High-Impact Primary CTA) */}
-          <motion.button
+          <button
             type="button"
             onClick={handleBuyNow}
             disabled={!selectedVariant || !isSelectedVariantAvailable || isBuyNowLoading}
-            whileTap={{ scale: 0.98 }}
-            className="w-full h-12 bg-neutral-950 text-white font-mono uppercase tracking-wider font-bold text-xs rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-[background-color,transform,opacity] flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full h-12 bg-neutral-950 text-white font-mono uppercase tracking-wider font-bold text-xs rounded-lg hover:bg-neutral-800 active:scale-[0.98] transition-[background-color,transform,opacity] flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isBuyNowLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
@@ -1274,7 +1196,7 @@ export function PDPClient({
                 ? "PROCESSING..."
                 : "BUY NOW · EXPRESS CHECKOUT →"}
             </span>
-          </motion.button>
+          </button>
         </div>
 
         {/* Delivery & Customer Assurance */}
@@ -1465,22 +1387,18 @@ export function PDPClient({
                   </span>
                 </button>
 
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={`faq-answer-${idx}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-5 sm:px-6 pb-6 pt-1 text-on-surface-variant text-xs sm:text-sm leading-relaxed border-t border-outline-variant/15 font-body-md">
-                        {faq.a}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div
+                  id={`faq-answer-${idx}`}
+                  className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-5 sm:px-6 pb-6 pt-1 text-on-surface-variant text-xs sm:text-sm leading-relaxed border-t border-outline-variant/15 font-body-md">
+                      {faq.a}
+                    </div>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -1489,57 +1407,11 @@ export function PDPClient({
     </section>
 
     {/* ─── Recommended Products Section ─── */}
-    {recommendations && recommendations.length > 0 && (
-      <section className="w-full mt-16 sm:mt-24 pt-10 sm:pt-14 border-t border-outline-variant/40 pb-20 lg:pb-12 max-w-container-max mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="w-2 h-2 rounded-full bg-neutral-950"></span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-bold">
-                CURATED LOOKBOOK PAIRINGS
-              </span>
-            </div>
-            <h2 className="font-headline-lg text-2xl sm:text-3xl font-black text-on-surface uppercase tracking-tight">
-              {recommendationTitle || "Complete The Look"}
-            </h2>
-            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl mt-1">
-              Handpicked garments engineered to complement the {product.name}.
-            </p>
-          </div>
-
-          <Link
-            href="/shop"
-            className="inline-flex items-center gap-2 font-mono text-xs uppercase font-bold text-neutral-800 hover:text-neutral-950 hover:underline tracking-wider"
-          >
-            <span>Explore Entire Catalog</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          {recommendations.map((recProduct) => (
-            <ProductCard
-              key={recProduct._id}
-              _id={recProduct._id}
-              slug={recProduct.slug}
-              name={recProduct.name}
-              images={recProduct.images}
-              basePrice={recProduct.basePrice}
-              mrp={recProduct.mrp}
-              discount={recProduct.discount}
-              averageRating={recProduct.averageRating}
-              reviewCount={recProduct.reviewCount}
-              isNewArrival={recProduct.isNewArrival}
-              isBestSeller={recProduct.isBestSeller}
-              freeDelivery={recProduct.freeDelivery}
-              tags={recProduct.tags}
-              variants={recProduct.variants}
-            />
-          ))}
-        </div>
-      </section>
-    )}
+    <PDPRecommendations
+      recommendations={recommendations}
+      recommendationTitle={recommendationTitle}
+      productName={product.name}
+    />
 
     {/* ─── Sticky Mobile Action Bar (<1024px) ─── */}
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant/30 p-2.5 px-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] lg:hidden pb-safe">
