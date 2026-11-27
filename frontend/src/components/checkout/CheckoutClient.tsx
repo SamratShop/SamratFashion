@@ -7,13 +7,97 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, Plus, X, CheckCircle, MapPinOff, Truck, Lock } from "lucide-react";
+import { CheckCircle2, Circle, Plus, X, BadgeCheck, MapPin, Truck, Lock } from "lucide-react";
 import Image from "next/image";
 
 import Script from "next/script";
 import { api } from "@/lib/api";
 import { formatCityStatePin, cleanAddressLine } from "@/lib/addressFormat";
 import { resolveCheckoutVerificationRoute } from "@/lib/checkoutRouting";
+import { optimizeCloudinaryUrl } from "@/lib/imageUtils";
+
+function CheckoutSkeleton() {
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 grid grid-cols-1 lg:grid-cols-12 gap-gutter outline-none"
+    >
+      <h1 className="sr-only">Checkout</h1>
+
+      {/* Left Column: Checkout Steps Skeleton */}
+      <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
+        {/* Step 1: Address Skeleton */}
+        <section className="bg-surface-container-lowest p-6 md:p-8 border border-outline-variant/20 rounded-lg shadow-sm min-h-[320px]">
+          <div className="flex items-center justify-between mb-6 border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-on-surface-variant text-sm font-bold animate-pulse">1</span>
+              <div className="h-6 w-36 bg-surface-container rounded animate-pulse" />
+            </div>
+            <div className="w-6 h-6 rounded-full bg-surface-container animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg p-5 border border-outline-variant/30 bg-surface-container-low/50 min-h-[160px] animate-pulse" />
+            <div className="rounded-lg p-5 border border-outline-variant/30 bg-surface-container-low/50 min-h-[160px] animate-pulse hidden md:block" />
+          </div>
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-10 w-40 bg-surface-container rounded-lg animate-pulse" />
+            <div className="h-4 w-28 bg-surface-container rounded animate-pulse" />
+          </div>
+        </section>
+
+        {/* Step 2: Delivery Method Skeleton */}
+        <section className="bg-surface-container-lowest p-6 md:p-8 border border-outline-variant/30 rounded-lg min-h-[140px]">
+          <div className="flex items-center justify-between mb-4 border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-surface-container text-on-surface-variant text-xs font-bold font-mono animate-pulse">2</span>
+              <div className="h-5 w-32 bg-surface-container rounded animate-pulse" />
+            </div>
+            <div className="h-5 w-24 bg-surface-container rounded animate-pulse" />
+          </div>
+          <div className="p-4 rounded-md border border-outline-variant/30 bg-surface-container-low min-h-[64px] animate-pulse" />
+        </section>
+
+        {/* Step 3: Payment Method Skeleton */}
+        <section className="bg-surface-container-lowest p-6 md:p-8 border border-outline-variant/30 rounded-lg min-h-[160px]">
+          <div className="flex items-center justify-between mb-4 border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-surface-container text-on-surface-variant text-xs font-bold font-mono animate-pulse">3</span>
+              <div className="h-5 w-32 bg-surface-container rounded animate-pulse" />
+            </div>
+            <div className="h-5 w-24 bg-surface-container rounded animate-pulse" />
+          </div>
+          <div className="p-4 rounded-md border border-outline-variant/30 bg-surface-container-low min-h-[80px] animate-pulse" />
+        </section>
+      </div>
+
+      {/* Right Column: Order Summary Skeleton */}
+      <div className="lg:col-span-5 xl:col-span-4">
+        <div className="sticky top-32">
+          <div className="bg-surface-container-lowest p-6 md:p-8 border border-outline-variant/20 rounded-lg shadow-sm min-h-[460px] flex flex-col gap-4">
+            <div className="h-6 w-36 bg-surface-container rounded animate-pulse mb-2 border-b border-outline-variant/20 pb-4" />
+            <div className="flex gap-4 items-center animate-pulse">
+              <div className="w-16 h-20 bg-surface-container rounded shrink-0" />
+              <div className="flex-grow space-y-2">
+                <div className="h-4 w-3/4 bg-surface-container rounded" />
+                <div className="h-3 w-1/2 bg-surface-container rounded" />
+              </div>
+              <div className="h-5 w-16 bg-surface-container rounded" />
+            </div>
+            <div className="space-y-3 pt-4 border-t border-outline-variant/20">
+              <div className="h-4 w-full bg-surface-container rounded animate-pulse" />
+              <div className="h-4 w-full bg-surface-container rounded animate-pulse" />
+              <div className="h-4 w-full bg-surface-container rounded animate-pulse" />
+              <div className="h-6 w-full bg-surface-container rounded animate-pulse pt-2" />
+            </div>
+            <div className="h-14 w-full bg-surface-container-high rounded-md animate-pulse mt-auto" />
+            <div className="h-4 w-48 bg-surface-container rounded animate-pulse mx-auto mt-2" />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
 
 export function CheckoutClient() {
   const router = useRouter();
@@ -266,30 +350,30 @@ export function CheckoutClient() {
     }
   };
 
+  // 1. Initial auth verification - display layout-matching skeleton to prevent layout shift (CLS)
   if (authLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <CheckoutSkeleton />;
   }
 
+  // 2. Unauthenticated state - redirect to login / sign-in prompt
   if (!isAuthenticated) {
     return <SignInRequiredState context="checkout" redirectPath="/checkout" />;
   }
 
+  // 3. Cart loading state - keep the skeleton until cart items arrive
   if (isLoadingCart && items.length === 0) {
-    return <div className="min-h-screen flex items-center justify-center">Loading checkout...</div>;
+    return <CheckoutSkeleton />;
   }
 
+  // 4. Empty cart guard - prompt to continue shopping
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <h2 className="font-headline-lg text-headline-lg mb-4">Your cart is empty</h2>
-        <button onClick={() => router.push('/shop')} className="bg-primary text-on-primary px-6 py-3 rounded">
+      <main id="main-content" tabIndex={-1} className="min-h-screen flex flex-col items-center justify-center outline-none">
+        <h1 className="font-headline-lg text-headline-lg mb-4">Your cart is empty</h1>
+        <button onClick={() => router.push('/shop')} className="bg-neutral-900 text-white font-mono text-xs uppercase font-bold px-6 py-3 rounded hover:bg-neutral-800 transition-colors">
           Continue Shopping
         </button>
-      </div>
+      </main>
     );
   }
 
@@ -301,6 +385,7 @@ export function CheckoutClient() {
         tabIndex={-1}
         className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 grid grid-cols-1 lg:grid-cols-12 gap-gutter outline-none"
       >
+        <h1 className="sr-only">Checkout</h1>
       {/* Left Column: Checkout Steps */}
       <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
         
@@ -314,8 +399,11 @@ export function CheckoutClient() {
             <CheckCircle2 className="text-primary w-6 h-6" />
           </div>
 
-          {isLoadingAddresses ? (
-            <p>Loading addresses...</p>
+          {isLoadingAddresses && addresses.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-lg p-5 border border-outline-variant/30 bg-surface-container-low/50 min-h-[160px] animate-pulse" />
+              <div className="rounded-lg p-5 border border-outline-variant/30 bg-surface-container-low/50 min-h-[160px] animate-pulse hidden md:block" />
+            </div>
           ) : addresses.length === 0 ? (
             <div className="text-center py-6">
               <p className="mb-4 text-sm text-neutral-600">You have no saved delivery addresses.</p>
@@ -370,9 +458,9 @@ export function CheckoutClient() {
                 : 'bg-red-50 border-red-200 text-red-800'
             }`}>
               {serviceability.serviceable ? (
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <BadgeCheck className="w-4 h-4 shrink-0 text-emerald-700" />
               ) : (
-                <MapPinOff className="w-4 h-4 text-red-600 shrink-0" />
+                <MapPin className="w-4 h-4 shrink-0 text-red-700" />
               )}
               <div>
                 {serviceability.serviceable ? (
@@ -421,7 +509,7 @@ export function CheckoutClient() {
             </span>
           </div>
           <div className="p-4 rounded-md border border-outline-variant/40 bg-surface-container-low flex items-start gap-3 text-xs font-mono">
-            <Truck className="w-4 h-4 text-primary shrink-0" />
+            <Truck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold text-on-surface">Express Courier Delivery (Trusted Logistics Partners)</p>
               <p className="text-neutral-500">Orders are processed and dispatched from our primary studio within 24-48 business hours.</p>
@@ -475,10 +563,24 @@ export function CheckoutClient() {
                   ? item.customConfigurations.map((c: any) => c.sizeDistribution?.map((d: any) => `${d.size} (${d.quantity})`).join(', ')).join('; ')
                   : '';
 
+                const rawImg = item.isCustomized
+                  ? (item.customizationSnapshot?.previewImage || item.variantDetails?.image || item.productId?.images?.[0] || '/placeholder.png')
+                  : (item.variantDetails?.image || item.productId?.images?.[0] || '/placeholder.png');
+                const optimizedThumb = rawImg.startsWith("http") ? optimizeCloudinaryUrl(rawImg, 600) : rawImg;
+
                 return (
                   <div key={idx} className="flex gap-4 items-center">
                     <div className="w-16 h-20 bg-surface-container-low rounded flex-shrink-0 relative overflow-hidden border border-outline-variant/10">
-                      <Image src={item.isCustomized ? (item.customizationSnapshot?.previewImage || item.variantDetails?.image || item.productId.images[0] || '/placeholder.png') : (item.variantDetails?.image || item.productId.images[0] || '/placeholder.png')} alt={item.productId.name} fill className="object-cover" />
+                      <Image
+                        src={optimizedThumb}
+                        alt={item.productId?.name || "Product"}
+                        fill
+                        priority={idx === 0}
+                        loading={idx === 0 ? "eager" : "lazy"}
+                        fetchPriority={idx === 0 ? "high" : "auto"}
+                        sizes="64px"
+                        className="object-cover"
+                      />
                     </div>
                     <div className="flex-grow">
                       <h4 className="font-body-sm text-body-sm font-semibold">{item.productId.name} {item.isCustomized && "(Custom)"}</h4>
