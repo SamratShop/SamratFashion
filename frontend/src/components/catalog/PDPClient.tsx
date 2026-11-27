@@ -301,7 +301,7 @@ export function PDPClient({
       }
       return ["https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=2070&auto=format&fit=crop"];
     })();
-    return rawImages.map((img) => optimizeCloudinaryUrl(img, 1000));
+    return rawImages.map((img) => optimizeCloudinaryUrl(img, 800));
   }, [selectedVariant, selectedColor, product.variants, product.images]);
   // Defense in depth: never inject a raw product description, even though the
   // backend now stores only allowlisted HTML.
@@ -712,7 +712,7 @@ export function PDPClient({
               `}
             >
               <Image
-                src={img}
+                src={optimizeCloudinaryUrl(img, 160)}
                 alt={`${product.name} thumbnail ${idx + 1}`}
                 fill
                 sizes="78px"
@@ -952,46 +952,46 @@ export function PDPClient({
       {/* ─── Tailoring Architecture & Garment Specs Card (Fills Left Void) ─── */}
       <div className="hidden sm:block rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 space-y-4 shadow-2xs">
         <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-          <h3 className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
+          <p className="font-mono text-xs uppercase font-bold tracking-wider text-on-surface flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-neutral-900 inline-block" />
             <span>Tailoring Architecture &amp; Specifications</span>
-          </h3>
-          <span className="font-mono text-[10px] text-neutral-400 uppercase font-semibold">SAMRAT MENSWEAR</span>
+          </p>
+          <span className="font-mono text-[10px] text-neutral-500 uppercase font-semibold">SAMRAT MENSWEAR</span>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-xs font-mono">
           <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
-            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FABRIC WEAVE</span>
+            <span className="text-[10px] text-neutral-500 uppercase block mb-0.5">FABRIC WEAVE</span>
             <span className="font-bold text-on-surface">{product.fabric || "Textured Woven Cotton Blend"}</span>
           </div>
           {product.gsm && product.gsm > 0 ? (
             <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">WEIGHT</span>
+              <span className="text-[10px] text-neutral-500 uppercase block mb-0.5">WEIGHT</span>
               <span className="font-bold text-on-surface">{`${product.gsm} GSM`}</span>
             </div>
           ) : (
             <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
-              <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">ORIGIN</span>
+              <span className="text-[10px] text-neutral-500 uppercase block mb-0.5">ORIGIN</span>
               <span className="font-bold text-on-surface">Crafted in India</span>
             </div>
           )}
           <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
-            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">FIT PROFILE</span>
+            <span className="text-[10px] text-neutral-500 uppercase block mb-0.5">FIT PROFILE</span>
             <span className="font-bold text-on-surface">{product.fit ? product.fit.replace(/_/g, " ") : "Tailored Regular Fit"}</span>
           </div>
           <div className="bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/20">
-            <span className="text-[10px] text-neutral-400 uppercase block mb-0.5">INNER LINING</span>
+            <span className="text-[10px] text-neutral-500 uppercase block mb-0.5">INNER LINING</span>
             <span className="font-bold text-on-surface">Full Inner Satin Lining</span>
           </div>
         </div>
 
         <div className="pt-2 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono text-neutral-500">
           <div className="flex items-center gap-2">
-            <span className="text-neutral-400 uppercase font-bold text-[10px]">MODEL:</span>
+            <span className="text-neutral-500 uppercase font-bold text-[10px]">MODEL:</span>
             <span>6&apos;1&quot; (185 cm) wearing size L</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-neutral-400 uppercase font-bold text-[10px]">CARE:</span>
+            <span className="text-neutral-500 uppercase font-bold text-[10px]">CARE:</span>
             <span className="truncate">
               {product.careInstructions && product.careInstructions.length > 0
                 ? product.careInstructions.join(" · ")
@@ -1113,7 +1113,7 @@ export function PDPClient({
                     <div className="relative w-12 h-14 rounded-md overflow-hidden bg-neutral-900 shrink-0 border border-black/10">
                       {colorThumbnail ? (
                         <Image
-                          src={colorThumbnail}
+                          src={optimizeCloudinaryUrl(colorThumbnail, 120)}
                           alt={`${product.name} in ${color}`}
                           fill
                           sizes="48px"
@@ -1321,7 +1321,7 @@ export function PDPClient({
 
         {/* Description Section */}
         <div className="pt-4 border-t border-outline-variant/30 space-y-3">
-          <h3 className="font-headline-sm text-sm uppercase font-bold text-on-surface tracking-wider">ABOUT THIS GARMENT</h3>
+          <h2 className="font-headline-sm text-sm uppercase font-bold text-on-surface tracking-wider">ABOUT THIS GARMENT</h2>
           <div
             className="text-on-surface-variant leading-relaxed text-xs sm:text-sm prose max-w-none font-body-sm"
             dangerouslySetInnerHTML={{ __html: safeDescriptionHtml }}
@@ -1332,28 +1332,28 @@ export function PDPClient({
             <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
               <div className="min-w-0">
-                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Collar Style</p>
+                <p className="font-mono text-[10px] text-neutral-500 uppercase font-bold">Collar Style</p>
                 <p className="text-xs font-bold text-on-surface truncate">Crisp Mandarin Collar</p>
               </div>
             </div>
             <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
               <div className="min-w-0">
-                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Pocket Design</p>
+                <p className="font-mono text-[10px] text-neutral-500 uppercase font-bold">Pocket Design</p>
                 <p className="text-xs font-bold text-on-surface truncate">4 Functional Flap Pockets</p>
               </div>
             </div>
             <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
               <div className="min-w-0">
-                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Front Closure</p>
+                <p className="font-mono text-[10px] text-neutral-500 uppercase font-bold">Front Closure</p>
                 <p className="text-xs font-bold text-on-surface truncate">5-Button Tailored Placket</p>
               </div>
             </div>
             <div className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/30 flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
               <div className="min-w-0">
-                <p className="font-mono text-[10px] text-neutral-400 uppercase font-bold">Occasion</p>
+                <p className="font-mono text-[10px] text-neutral-500 uppercase font-bold">Occasion</p>
                 <p className="text-xs font-bold text-on-surface truncate">Festive &amp; Formal Layering</p>
               </div>
             </div>

@@ -135,11 +135,11 @@ export function ProductCard({
   return (
     <div
       aria-busy={Boolean(pendingHref)}
-      className="group relative flex flex-col justify-between h-full bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/40 streetwear-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      className="group relative flex flex-col justify-between h-full bg-surface-container-lowest rounded-lg overflow-hidden border border-outline-variant/40 streetwear-card transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg"
     >
       {/* Image Container with Streetwear Aspect Ratio */}
       <div className="relative aspect-[3/4] bg-neutral-900 overflow-hidden">
-        <Link href={targetUrl} onClick={() => markNavigating(targetUrl)} className="block w-full h-full relative">
+        <Link href={targetUrl} onClick={() => markNavigating(targetUrl)} aria-label={`View details for ${name}`} className="block w-full h-full relative">
           <Image
             src={primaryImage}
             alt={name}
@@ -148,7 +148,7 @@ export function ProductCard({
             loading={priority ? "eager" : "lazy"}
             fetchPriority={fetchPriority || (priority ? "high" : "auto")}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="product-img-primary absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+            className="product-img-primary absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
           {secondaryImage && secondaryImage !== primaryImage && (
             <Image
@@ -355,15 +355,18 @@ export function ProductCard({
                   title={color}
                   aria-label={`Color: ${color}${isCurrent ? " (selected)" : ""}`}
                   aria-busy={pendingHref === swatchHref}
-                  className={`relative w-3.5 h-3.5 rounded-full border transition-all hover:scale-125 ${
-                    pendingHref === swatchHref ? "animate-pulse ring-2 ring-primary ring-offset-1" : ""
-                  } ${
-                    isCurrent
-                      ? "ring-2 ring-primary ring-offset-1 scale-115 border-white shadow-xs"
-                      : "border-neutral-300 ring-1 ring-black/10 opacity-70 hover:opacity-100"
-                  }`}
-                  style={{ backgroundColor: hex }}
+                  className="relative min-w-[44px] min-h-[44px] -m-2 p-2 flex items-center justify-center cursor-pointer group/swatch"
                 >
+                  <span
+                    className={`block w-3.5 h-3.5 rounded-full border transition-transform group-hover/swatch:scale-125 ${
+                      pendingHref === swatchHref ? "animate-pulse ring-2 ring-primary ring-offset-1" : ""
+                    } ${
+                      isCurrent
+                        ? "ring-2 ring-primary ring-offset-1 scale-115 border-white shadow-xs"
+                        : "border-neutral-300 ring-1 ring-black/10 opacity-70 group-hover/swatch:opacity-100"
+                    }`}
+                    style={{ backgroundColor: hex }}
+                  />
                   <span className="sr-only">{color}</span>
                 </Link>
               );
@@ -379,7 +382,7 @@ export function ProductCard({
           <Link
             href={targetUrl}
             onClick={() => markNavigating(targetUrl)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 border border-outline-variant text-on-surface font-mono text-[10px] sm:text-[11px] uppercase tracking-wider font-bold rounded-md hover:bg-neutral-900 hover:text-white hover:border-neutral-900 active:scale-95 transition-all min-h-[38px]"
+            className="w-full flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 border border-outline-variant text-on-surface font-mono text-[10px] sm:text-[11px] uppercase tracking-wider font-bold rounded-md hover:bg-neutral-900 hover:text-white hover:border-neutral-900 active:scale-95 transition-[background-color,border-color,color] min-h-[38px]"
           >
             {pendingHref === targetUrl ? (
               <>

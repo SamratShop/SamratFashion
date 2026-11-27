@@ -331,7 +331,7 @@ export default function CustomerSupportClient() {
       {/* Topics Grid */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <h3 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">HELP TOPICS</h3>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">HELP TOPICS</h2>
           {selectedCategory !== "All" && (
             <button
               onClick={() => setSelectedCategory("All")}
@@ -367,7 +367,7 @@ export default function CustomerSupportClient() {
       {/* Recent Orders Rail (only shown if user has orders) */}
       {recentOrders.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">YOUR RECENT ORDERS</h3>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">YOUR RECENT ORDERS</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
             {recentOrders.map((ord) => (
               <div
@@ -400,7 +400,7 @@ export default function CustomerSupportClient() {
 
       {/* Support Tickets Section */}
       <div className="space-y-3">
-        <h3 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">YOUR SUPPORT TICKETS</h3>
+        <h2 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">YOUR SUPPORT TICKETS</h2>
         {authLoading || isLoading ? (
           <div className="p-8 text-center text-on-surface-variant font-mono text-xs">Loading support tickets...</div>
         ) : error ? (
@@ -408,7 +408,7 @@ export default function CustomerSupportClient() {
         ) : !isAuthenticated ? (
           <div className="p-6 sm:p-8 text-center bg-surface-container-lowest rounded-xl border border-outline-variant/30 space-y-3">
             <MessageSquare className="w-8 h-8 text-neutral-400 mx-auto" />
-            <h4 className="font-headline-sm text-base font-bold text-on-surface">Tracking an existing support request?</h4>
+            <h3 className="font-headline-sm text-base font-bold text-on-surface">Tracking an existing support request?</h3>
             <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
               Sign in with your account email to view open tickets, staff replies, and resolution history.
             </p>
@@ -449,13 +449,13 @@ export default function CustomerSupportClient() {
                     >
                       {t.status}
                     </span>
-                    <span className="font-mono text-[11px] text-neutral-400">
+                    <span className="font-mono text-[11px] text-neutral-500">
                       {new Date(t.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <h4 className="font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">
                     {t.subject}
-                  </h4>
+                  </h3>
                   <p className="text-xs text-on-surface-variant mt-0.5 font-mono">
                     Category: {t.category} {t.orderId ? `• Order #${t.orderId.orderNumber}` : ""}
                   </p>
@@ -475,8 +475,8 @@ export default function CustomerSupportClient() {
       {/* Popular FAQs Accordion */}
       <div className="bg-surface-container-lowest p-5 sm:p-8 rounded-xl border border-outline-variant/30 space-y-4 shadow-xs">
         <div className="flex justify-between items-center border-b border-outline-variant/20 pb-3">
-          <h3 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">FREQUENTLY ASKED QUESTIONS</h3>
-          <span className="font-mono text-[11px] text-neutral-400">{filteredFaqs.length} FAQs</span>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-neutral-500 font-bold">FREQUENTLY ASKED QUESTIONS</h2>
+          <span className="font-mono text-[11px] text-neutral-500">{filteredFaqs.length} FAQs</span>
         </div>
 
         {filteredFaqs.length === 0 ? (
@@ -527,9 +527,9 @@ export default function CustomerSupportClient() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-surface-container-lowest w-full max-w-lg rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-5 sm:px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest sticky top-0 z-10">
-              <h3 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface uppercase tracking-tight">
+              <h2 className="font-headline-sm text-base sm:text-lg font-bold text-on-surface uppercase tracking-tight">
                 Create Support Ticket
-              </h3>
+              </h2>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}

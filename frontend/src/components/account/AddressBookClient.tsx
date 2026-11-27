@@ -315,8 +315,45 @@ export function AddressBookClient() {
 
   if (authLoading) {
     return (
-      <div className="w-full py-20 flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-neutral-900 animate-spin mb-3" />
+      <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
+        <AccountNav currentTab="addresses" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pb-6 border-b border-outline-variant/40">
+          <div>
+            <div className="flex items-center gap-3 mb-1.5 min-h-[36px]">
+              <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
+                SAVED ADDRESSES
+              </h1>
+              <div className="h-5 w-20 bg-surface-container rounded-md" />
+            </div>
+            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
+              Manage your delivery destinations and set your default shipping address for faster checkout.
+            </p>
+          </div>
+          <div className="h-[44px] w-full sm:w-44 bg-surface-container rounded-lg shrink-0" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-5 sm:p-6 flex flex-col justify-between h-[260px]"
+            >
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="h-5 w-16 bg-surface-container-high rounded-md" />
+                  <div className="h-4 w-14 bg-surface-container-high rounded" />
+                </div>
+                <div className="h-6 w-3/4 bg-surface-container-high rounded mt-2" />
+                <div className="h-4 w-full bg-surface-container-low rounded" />
+                <div className="h-4 w-2/3 bg-surface-container-low rounded" />
+                <div className="h-4 w-1/2 bg-surface-container-low rounded" />
+              </div>
+              <div className="pt-4 border-t border-outline-variant/20 flex justify-between">
+                <div className="h-7 w-20 bg-surface-container-high rounded" />
+                <div className="h-7 w-24 bg-surface-container-low rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -375,30 +412,32 @@ export function AddressBookClient() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 pb-6 border-b border-outline-variant/40">
         <div>
-          <div className="flex items-center gap-3 mb-1.5">
+          <div className="flex items-center gap-3 mb-1.5 min-h-[36px]">
             <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
               SAVED ADDRESSES
             </h1>
-            {!isLoading && addresses.length > 0 && (
-              <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md">
-                {addresses.length} {addresses.length === 1 ? "Address" : "Addresses"}
-              </span>
-            )}
+            <span className="inline-flex items-center min-h-[22px]">
+              {isLoading ? (
+                <span className="h-5 w-20 bg-surface-container rounded-md inline-block animate-pulse" />
+              ) : addresses.length > 0 ? (
+                <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md tabular-nums">
+                  {addresses.length} {addresses.length === 1 ? "Address" : "Addresses"}
+                </span>
+              ) : null}
+            </span>
           </div>
           <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
             Manage your delivery destinations and set your default shipping address for faster checkout.
           </p>
         </div>
 
-        {!isLoading && addresses.length > 0 && (
-          <button
-            onClick={() => handleOpenDrawer()}
-            className="bg-neutral-950 text-white hover:bg-neutral-800 font-mono text-xs uppercase tracking-wider font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm active:scale-[0.99] min-h-[44px] shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add New Address</span>
-          </button>
-        )}
+        <button
+          onClick={() => handleOpenDrawer()}
+          className="bg-neutral-950 text-white hover:bg-neutral-800 font-mono text-xs uppercase tracking-wider font-bold py-3 px-5 rounded-lg transition-colors flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm active:scale-[0.99] min-h-[44px] shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Address</span>
+        </button>
       </div>
 
       {/* Main Content: Loading, Empty, or Address Grid */}
@@ -429,7 +468,7 @@ export function AddressBookClient() {
         </div>
       ) : addresses.length === 0 ? (
         /* Empty State */
-        <div className="text-center py-16 px-6 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl max-w-xl mx-auto shadow-sm">
+        <div className="text-center py-16 px-6 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl max-w-xl mx-auto shadow-sm min-h-[260px] flex flex-col items-center justify-center">
           <div className="w-16 h-16 rounded-2xl bg-surface-container-low text-neutral-800 flex items-center justify-center mx-auto mb-5 border border-outline-variant/40">
             <Compass className="w-8 h-8 text-neutral-700 stroke-[1.5]" />
           </div>

@@ -39,7 +39,7 @@ export default function CartPage() {
     return (
       <main id="main-content" tabIndex={-1} className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 sm:py-8 md:py-12 pb-28 lg:pb-12 outline-none">
         <div className="flex items-baseline justify-between mb-8 border-b border-outline-variant/30 pb-4">
-          <div className="h-8 w-48 bg-surface-container-high rounded animate-pulse" />
+          <h1 className="font-headline-lg text-2xl sm:text-3xl font-black text-on-surface uppercase tracking-tight">SHOPPING BAG</h1>
           <div className="h-4 w-16 bg-surface-container rounded animate-pulse" />
         </div>
         <div className="flex flex-col lg:flex-row gap-12">
@@ -160,7 +160,7 @@ export default function CartPage() {
             const rawImg = item.isCustomized
               ? (item.customizationSnapshot?.previewImage || "/placeholder.jpg")
               : (item.variantDetails?.image || item.productId?.images?.[0] || "/placeholder.jpg");
-            const optimizedThumbnail = rawImg.startsWith("http") ? optimizeCloudinaryUrl(rawImg, 600) : rawImg;
+            const optimizedThumbnail = rawImg.startsWith("http") ? optimizeCloudinaryUrl(rawImg, 240) : rawImg;
 
             return (
               <div key={`${item.productId._id}-${item.variantId}-${idx}`} className={`flex gap-3 sm:gap-6 bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 sm:p-4 ${!item.isAvailable ? 'opacity-70' : ''}`}>
@@ -334,7 +334,7 @@ export default function CartPage() {
                   ₹{Math.round(summary.total).toLocaleString("en-IN")}
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant/70 text-right">(Inclusive of all taxes)</p>
+              <p className="text-xs text-neutral-600 text-right">(Inclusive of all taxes)</p>
             </div>
 
             <button 
@@ -345,7 +345,7 @@ export default function CartPage() {
               PROCEED TO CHECKOUT &rarr;
             </button>
 
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant/80 justify-center">
+            <div className="flex items-center gap-2 text-xs text-neutral-600 justify-center">
               <ShieldCheck className="w-4 h-4" />
               <span>100% Secure Checkout</span>
             </div>

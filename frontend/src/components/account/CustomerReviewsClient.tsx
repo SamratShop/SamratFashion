@@ -126,8 +126,40 @@ export default function CustomerReviewsClient() {
 
   if (authLoading) {
     return (
-      <div className="flex-1 bg-background min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
+        <AccountNav currentTab="reviews" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
+          <div>
+            <div className="flex items-center gap-3 mb-1.5 flex-wrap min-h-[36px]">
+              <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
+                MY REVIEWS
+              </h1>
+              <div className="h-5 w-20 bg-surface-container rounded-md" />
+            </div>
+            <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
+              Share your thoughts on delivered pieces and help other customers find their perfect fit.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-4 sm:gap-8 mb-8 border-b border-outline-variant/30">
+          <div className="pb-3 h-8 w-24 bg-surface-container rounded" />
+          <div className="pb-3 h-8 w-24 bg-surface-container rounded" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[220px]">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 min-h-[180px] flex items-center gap-4"
+            >
+              <div className="w-24 h-24 rounded-xl bg-surface-container shrink-0" />
+              <div className="space-y-3 flex-1">
+                <div className="h-5 w-3/4 bg-surface-container rounded" />
+                <div className="h-4 w-1/2 bg-surface-container-low rounded" />
+                <div className="h-4 w-1/3 bg-surface-container-low rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -155,15 +187,19 @@ export default function CustomerReviewsClient() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
         <div>
-          <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+          <div className="flex items-center gap-3 mb-1.5 flex-wrap min-h-[36px]">
             <h1 className="font-headline-lg text-2xl sm:text-3xl lg:text-4xl font-black text-on-surface uppercase tracking-tight">
               MY REVIEWS
             </h1>
-            {!isLoading && reviews.length > 0 && (
-              <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md">
-                {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
-              </span>
-            )}
+            <span className="inline-flex items-center min-h-[22px]">
+              {isLoading ? (
+                <span className="h-5 w-20 bg-surface-container rounded-md inline-block animate-pulse" />
+              ) : reviews.length > 0 ? (
+                <span className="bg-surface-container-high text-on-surface font-mono text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md tabular-nums">
+                  {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
+                </span>
+              ) : null}
+            </span>
           </div>
           <p className="font-body-md text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
             Share your thoughts on delivered pieces and help other customers find their perfect fit.
@@ -181,7 +217,7 @@ export default function CustomerReviewsClient() {
         >
           <span>To Review</span>
           {unreviewedItems.length > 0 && (
-            <span className="bg-neutral-900 text-white rounded-full px-2 py-0.5 text-[10px] font-mono">
+            <span className="bg-neutral-900 text-white rounded-full px-2 py-0.5 text-[10px] font-mono tabular-nums">
               {unreviewedItems.length}
             </span>
           )}
@@ -194,7 +230,7 @@ export default function CustomerReviewsClient() {
         >
           <span>Reviewed</span>
           {reviews.length > 0 && (
-            <span className="bg-neutral-200 text-neutral-800 rounded-full px-2 py-0.5 text-[10px] font-mono">
+            <span className="bg-neutral-200 text-neutral-800 rounded-full px-2 py-0.5 text-[10px] font-mono tabular-nums">
               {reviews.length}
             </span>
           )}
@@ -202,7 +238,21 @@ export default function CustomerReviewsClient() {
       </div>
 
       {isLoading && (
-        <div className="p-8 text-center font-bold text-on-surface-variant">Loading your reviews...</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[220px] animate-pulse">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 min-h-[180px] flex items-center gap-4"
+            >
+              <div className="w-24 h-24 rounded-xl bg-surface-container shrink-0" />
+              <div className="space-y-3 flex-1">
+                <div className="h-5 w-3/4 bg-surface-container rounded" />
+                <div className="h-4 w-1/2 bg-surface-container-low rounded" />
+                <div className="h-4 w-1/3 bg-surface-container-low rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {error && (
