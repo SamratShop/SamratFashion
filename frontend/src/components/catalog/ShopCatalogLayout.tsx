@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
+import dynamic from "next/dynamic";
 import {
   SlidersHorizontal,
   X,
@@ -16,6 +16,17 @@ import {
 } from "lucide-react";
 import { ProductCard, ProductCardProps } from "@/components/catalog/ProductCard";
 import { CategoryItem, ThemeItem, getActiveCategories, getActiveThemes, filterStorefrontCategories } from "@/lib/catalog";
+
+const ShopSidebarResizer = dynamic(
+  () => import("@/components/catalog/ShopSidebarResizer").then((m) => m.ShopSidebarResizer),
+  { ssr: false }
+);
+
+const ShopMobileFilterDrawer = dynamic(
+  () => import("@/components/catalog/ShopMobileFilterDrawer").then((m) => m.ShopMobileFilterDrawer),
+  { ssr: false }
+);
+
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 380;
 const DEFAULT_WIDTH = 280;
@@ -23,25 +34,26 @@ const DEFAULT_WIDTH = 280;
 const STORAGE_KEY_WIDTH = "threadvibe_shop_sidebar_width";
 const STORAGE_KEY_COLLAPSED = "threadvibe_shop_sidebar_collapsed";
 
-
 const SIZES = ["S", "M", "L", "XL", "2XL"];
 
 interface ShopCatalogLayoutProps {
-  products: ProductCardProps[];
+  products?: ProductCardProps[];
   total: number;
   currentSort: string;
   activeQuery: string;
   categories?: CategoryItem[];
   themes?: ThemeItem[];
+  children?: React.ReactNode;
 }
 
 export function ShopCatalogLayout({
-  products,
+  products = [],
   total,
   currentSort,
   activeQuery,
   categories,
   themes,
+  children,
 }: ShopCatalogLayoutProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,22 +85,10 @@ export function ShopCatalogLayout({
   // Desktop sidebar resizable & collapsible state
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Mobile / Tablet drawer state (<1024px)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
 
-  // Prevent background scroll when mobile filter drawer is open
-  useEffect(() => {
-    if (isMobileDrawerOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobileDrawerOpen]);
   // Search input state
   const [searchTerm, setSearchTerm] = useState(activeQuery);
 
@@ -244,17 +244,6 @@ export function ShopCatalogLayout({
     });
   }, [router]);
 
-  // Safe setter for width with persistence
-  const updateSidebarWidth = useCallback((newWidth: number) => {
-    const clamped = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(newWidth)));
-    setSidebarWidth(clamped);
-    try {
-      localStorage.setItem(STORAGE_KEY_WIDTH, clamped.toString());
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
-
   // Desktop sidebar toggle with persistence
   const handleToggleSidebar = useCallback(() => {
     setIsCollapsed((prev) => {
@@ -267,97 +256,6 @@ export function ShopCatalogLayout({
       return next;
     });
   }, []);
-
-  // Dragging logic for desktop resizer handle
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      setIsDragging(true);
-
-      const startX = e.clientX;
-      const startWidth = sidebarWidth;
-
-      const containerWidth = containerRef.current
-        ? containerRef.current.getBoundingClientRect().width
-        : 1200;
-      const maxAllowed = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, containerWidth - 320));
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const targetWidth = startWidth + deltaX;
-        const clamped = Math.min(maxAllowed, Math.max(MIN_WIDTH, Math.round(targetWidth)));
-        setSidebarWidth(clamped);
-      };
-
-      const handlePointerUp = (upEvent: PointerEvent) => {
-        setIsDragging(false);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
-        document.body.style.removeProperty("cursor");
-        document.body.style.removeProperty("user-select");
-
-        const deltaX = upEvent.clientX - startX;
-        const finalWidth = Math.min(maxAllowed, Math.max(MIN_WIDTH, Math.round(startWidth + deltaX)));
-        setSidebarWidth(finalWidth);
-        try {
-          localStorage.setItem(STORAGE_KEY_WIDTH, finalWidth.toString());
-        } catch {
-          // Ignore storage errors
-        }
-      };
-
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp);
-      window.addEventListener("pointercancel", handlePointerUp);
-    },
-    [sidebarWidth]
-  );
-
-  // Keyboard navigation on resizer divider
-  const handleResizerKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        updateSidebarWidth(sidebarWidth - 10);
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        updateSidebarWidth(sidebarWidth + 10);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        updateSidebarWidth(MIN_WIDTH);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        updateSidebarWidth(MAX_WIDTH);
-      }
-    },
-    [sidebarWidth, updateSidebarWidth]
-  );
-
-  // Lock body scroll when mobile drawer is open
-  useEffect(() => {
-    if (isMobileDrawerOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = originalStyle;
-      };
-    }
-  }, [isMobileDrawerOpen]);
-
-  // Escape key closes mobile drawer
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isMobileDrawerOpen) {
-        setIsMobileDrawerOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobileDrawerOpen]);
 
   // Search submission handlers
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -669,31 +567,16 @@ export function ShopCatalogLayout({
         })}
       </div>
 
-      {/* ─── TOP SHIMMER PROGRESS BAR (Hardware-accelerated) ──────────── */}
-      <AnimatePresence>
-        {isPending && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 3 }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
-            role="progressbar"
-            aria-label="Updating catalog drops"
-            className="w-full bg-primary/15 rounded-full overflow-hidden relative"
-          >
-            <motion.div
-              className="absolute top-0 bottom-0 bg-primary rounded-full"
-              initial={{ left: "-40%", width: "40%" }}
-              animate={{ left: "100%", width: "50%" }}
-              transition={{
-                repeat: Infinity,
-                duration: 1.0,
-                ease: "easeInOut",
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ─── TOP SHIMMER PROGRESS BAR (CSS transition/animation) ──────── */}
+      {isPending && (
+        <div
+          role="progressbar"
+          aria-label="Updating catalog drops"
+          className="w-full bg-primary/15 rounded-full overflow-hidden relative h-[3px] transition-opacity duration-150 animate-pulse"
+        >
+          <div className="absolute top-0 bottom-0 bg-primary rounded-full w-2/5 animate-[pulse_1s_ease-in-out_infinite]" />
+        </div>
+      )}
 
       {/* ─── INTEGRATED TOOLBAR ────────────────────────────────────────── */}
       <div className="flex flex-col gap-3">
@@ -890,9 +773,7 @@ export function ShopCatalogLayout({
           style={{
             width: isCollapsed ? 0 : `${sidebarWidth}px`,
           }}
-          className={`hidden lg:block shrink-0 ${
-            isDragging ? "" : "transition-[width,opacity] duration-300 ease-out"
-          } ${
+          className={`hidden lg:block shrink-0 transition-[width,opacity] duration-300 ease-out ${
             isCollapsed
               ? "w-0 opacity-0 pointer-events-none invisible overflow-hidden m-0 p-0"
               : "opacity-100 visible"
@@ -928,28 +809,11 @@ export function ShopCatalogLayout({
 
         {/* Draggable Vertical Divider (Only active on desktop when expanded) */}
         {!isCollapsed && (
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize filter sidebar"
-            aria-valuenow={sidebarWidth}
-            aria-valuemin={MIN_WIDTH}
-            aria-valuemax={MAX_WIDTH}
-            tabIndex={0}
-            onPointerDown={handlePointerDown}
-            onKeyDown={handleResizerKeyDown}
-            className={`hidden lg:flex shrink-0 w-3 self-stretch justify-center cursor-col-resize select-none mx-0.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full ${
-              isDragging ? "bg-primary/10" : ""
-            }`}
-          >
-            <div
-              className={`w-[1px] h-full transition-colors rounded-full ${
-                isDragging
-                  ? "bg-primary w-[2px]"
-                  : "bg-outline-variant/30 group-hover:bg-primary group-hover:w-[2px]"
-              }`}
-            />
-          </div>
+          <ShopSidebarResizer
+            sidebarWidth={sidebarWidth}
+            onWidthChange={setSidebarWidth}
+            containerRef={containerRef}
+          />
         )}
 
         {/* Product Grid Area (Expands into available horizontal space) */}
@@ -958,29 +822,23 @@ export function ShopCatalogLayout({
           aria-busy={isPending}
         >
           {/* Floating Pending Indicator */}
-          <AnimatePresence>
-            {isPending && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
-              >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-900/95 text-white shadow-xl border border-neutral-700/60 backdrop-blur-md font-mono text-xs font-bold tracking-wider uppercase">
-                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-                  <span>Updating drops...</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isPending && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-150">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-900/95 text-white shadow-xl border border-neutral-700/60 backdrop-blur-md font-mono text-xs font-bold tracking-wider uppercase">
+                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                <span>Updating drops...</span>
+              </div>
+            </div>
+          )}
 
           <div
             className={`transition-all duration-300 ${
               isPending ? "opacity-35 pointer-events-none select-none" : "opacity-100"
             }`}
           >
-            {products.length > 0 ? (
+            {children ? (
+              children
+            ) : products.length > 0 ? (
               <div
                 className={`grid gap-3 sm:gap-4 md:gap-6 ${
                   isCollapsed
@@ -1032,7 +890,7 @@ export function ShopCatalogLayout({
             )}
 
             {/* Pagination / Progress Indicator */}
-            {products.length > 0 && products.length < total && (
+            {!children && products.length > 0 && products.length < total && (
               <div className="mt-16 flex flex-col items-center justify-center border-t border-outline-variant/20 pt-8">
                 <p className="font-mono text-xs text-on-surface-variant mb-3 uppercase tracking-wider">
                   VIEWING {products.length} OF {total} PRODUCTS
@@ -1050,93 +908,16 @@ export function ShopCatalogLayout({
       </div>
 
       {/* ─── MOBILE & TABLET SLIDE-IN DRAWER (<1024px) ─────────────────── */}
-      <AnimatePresence>
-        {isMobileDrawerOpen && (
-          <div className="fixed inset-0 z-[100] flex lg:hidden">
-            {/* Backdrop overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-              onClick={() => setIsMobileDrawerOpen(false)}
-              aria-hidden="true"
-            />
-
-            {/* Drawer sheet sliding in from the left */}
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="mobile-filter-title"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="relative z-[101] w-full max-w-xs sm:max-w-sm bg-surface-container-lowest h-full shadow-2xl flex flex-col border-r border-outline-variant/30 pb-safe"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center px-6 py-4 border-b border-outline-variant/20">
-                <div className="flex items-center gap-2">
-                  <h2 id="mobile-filter-title" className="font-headline-sm text-base font-bold text-on-surface uppercase tracking-wider">
-                    Filter Drops
-                  </h2>
-                  {isPending ? (
-                    <span className="flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-on-primary text-[10px] font-mono font-bold leading-none animate-pulse">
-                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                    </span>
-                  ) : activeFiltersCount > 0 ? (
-                    <span className="flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-on-primary text-[10px] font-mono font-bold leading-none">
-                      {activeFiltersCount}
-                    </span>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileDrawerOpen(false)}
-                  className="p-2 -mr-1.5 text-on-surface-variant hover:text-on-surface rounded-lg transition-colors touch-target-base flex items-center justify-center"
-                  aria-label="Close filters drawer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Scrollable Filters Body */}
-              <div className="flex-1 overflow-y-auto px-6 py-5">
-                {renderFilterContent()}
-              </div>
-
-              {/* Footer Actions */}
-              <div className="p-4 border-t border-outline-variant/20 bg-surface flex gap-3 pb-safe">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleClearAll();
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className="flex-1 py-3 border border-outline-variant/50 font-mono text-xs uppercase tracking-wider font-bold rounded-lg text-on-surface hover:bg-surface-container-low active:scale-95 transition-all min-h-[48px] cursor-pointer"
-                >
-                  Clear All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileDrawerOpen(false)}
-                  className="flex-1 py-3 bg-neutral-900 text-white font-mono text-xs uppercase tracking-wider font-bold rounded-lg shadow-sm hover:bg-neutral-800 active:scale-95 transition-all min-h-[48px] flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Updating...</span>
-                    </>
-                  ) : (
-                    <span>View ({total})</span>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {isMobileDrawerOpen && (
+        <ShopMobileFilterDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          activeFiltersCount={activeFiltersCount}
+          onClearAll={handleClearAll}
+        >
+          {renderFilterContent()}
+        </ShopMobileFilterDrawer>
+      )}
     </div>
   );
 }

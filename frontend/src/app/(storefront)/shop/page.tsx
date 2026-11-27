@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { serverFetch } from "@/lib/serverApi";
 import { ShopCatalogLayout } from "@/components/catalog/ShopCatalogLayout";
+import { ShopProductGrid } from "@/components/catalog/ShopProductGrid";
 import { ProductCardProps } from "@/components/catalog/ProductCard";
 import { Suspense } from "react";
 import { getActiveCategories, getActiveThemes, filterStorefrontCategories } from "@/lib/catalog";
@@ -266,7 +267,12 @@ export default async function ShopPage({
           activeQuery={activeQuery}
           categories={categories}
           themes={themes}
-        />
+        >
+          <ShopProductGrid
+            products={products}
+            total={total}
+          />
+        </ShopCatalogLayout>
       </Suspense>
     </main>
   );
