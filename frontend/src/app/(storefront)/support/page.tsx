@@ -45,7 +45,11 @@ const SUPPORT_FAQS = [
 ];
 export default function CustomerSupportPage() {
   return (
-    <main className="flex-grow w-full max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-28 lg:pb-12">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex-grow w-full max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-28 lg:pb-12 outline-none"
+    >
       <JsonLd
         id="support-breadcrumbs-jsonld"
         data={getBreadcrumbJsonLd([

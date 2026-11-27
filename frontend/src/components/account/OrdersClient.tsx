@@ -318,8 +318,39 @@ export function OrdersClient() {
 
   if (authLoading) {
     return (
-      <div className="w-full py-20 flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-neutral-900 animate-spin mb-3" />
+      <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
+        {/* Navigation Tabs Skeleton */}
+        <div className="relative mb-6 sm:mb-8">
+          <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-1.5 sm:gap-2 pb-1 border-b border-outline-variant/40">
+            {ACCOUNT_TABS.map((tab) => (
+              <div
+                key={tab.href}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-xs font-bold uppercase tracking-wider min-h-[40px] ${
+                  tab.active ? "bg-neutral-950 text-white" : "text-neutral-400"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Header Section Skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
+          <div>
+            <div className="h-9 w-48 bg-surface-container rounded mb-2" />
+            <div className="h-4 w-72 bg-surface-container rounded" />
+          </div>
+        </div>
+
+        {/* Empty State Shell Skeleton */}
+        <div className="text-center py-10 px-6 sm:px-10 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl max-w-lg mx-auto shadow-xs space-y-5">
+          <div className="w-24 h-28 mx-auto rounded-xl bg-surface-container" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 bg-surface-container rounded mx-auto" />
+            <div className="h-4 w-64 bg-surface-container rounded mx-auto" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -464,39 +495,24 @@ export function OrdersClient() {
 
       {/* Main Content: Loading, Empty, or Order Cards */}
       {isLoading && orders.length === 0 ? (
-        /* Skeleton Order Cards */
-        <div className="space-y-5">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl overflow-hidden shadow-xs animate-pulse"
-            >
-              <div className="p-4 sm:p-5 bg-surface-container-low/60 border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between gap-3">
-                <div className="flex gap-3">
-                  <div className="h-5 w-28 bg-surface-container-high rounded"></div>
-                  <div className="h-5 w-20 bg-surface-container-high rounded"></div>
-                  <div className="h-5 w-16 bg-surface-container-high rounded"></div>
-                </div>
-                <div className="h-6 w-24 bg-surface-container-high rounded-full"></div>
-              </div>
-              <div className="p-4 sm:p-5 flex gap-4">
-                <div className="w-16 h-20 bg-surface-container-high rounded-lg"></div>
-                <div className="space-y-2 flex-1">
-                  <div className="h-5 w-1/2 bg-surface-container-high rounded"></div>
-                  <div className="h-4 w-1/4 bg-surface-container-low rounded"></div>
-                </div>
-              </div>
-            </div>
-          ))}
+        /* Skeleton Matching Empty State Shell to Prevent Speed Index Lag */
+        <div className="text-center py-10 px-6 sm:px-10 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl max-w-lg mx-auto shadow-xs space-y-5 animate-pulse min-h-[360px]">
+          <div className="w-24 h-28 mx-auto rounded-xl bg-surface-container" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 bg-surface-container rounded mx-auto" />
+            <div className="h-4 w-64 bg-surface-container rounded mx-auto" />
+          </div>
+          <div className="p-4 bg-surface-container-low/80 rounded-xl border border-outline-variant/40 h-24" />
         </div>
       ) : orders.length === 0 ? (
         /* Warm & Reassuring Empty State */
-        <div className="text-center py-10 px-6 sm:px-10 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl max-w-lg mx-auto shadow-xs space-y-5">
+        <div className="text-center py-10 px-6 sm:px-10 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl max-w-lg mx-auto shadow-xs space-y-5 min-h-[360px]">
           <div className="w-24 h-28 mx-auto relative rounded-xl overflow-hidden bg-surface-container border border-outline-variant/40 shadow-inner">
             <Image
               src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=400&auto=format&fit=crop"
               alt="Tailored Apparel Collection"
               fill
+              priority
               sizes="96px"
               className="object-cover"
             />
@@ -762,6 +778,7 @@ export function OrdersClient() {
 
                   <Link
                     href={`/account/orders/${order._id}#tracking`}
+                    aria-label={`Track order #${order.orderNumber}`}
                     className="inline-flex items-center gap-1.5 text-neutral-900 hover:text-brand font-bold uppercase transition-colors hover:underline shrink-0 text-xs self-start sm:self-auto"
                   >
                     <span>Track your order</span>

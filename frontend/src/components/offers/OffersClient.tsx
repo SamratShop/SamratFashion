@@ -264,21 +264,21 @@ export default function OffersClient({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <span className="font-mono text-2xl font-black text-primary">01</span>
-                <h4 className="font-bold text-sm uppercase text-on-surface">Copy Voucher Code</h4>
+                <h3 className="font-bold text-sm uppercase text-on-surface">Copy Voucher Code</h3>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   Click on the voucher badge above to copy the active discount coupon to your clipboard.
                 </p>
               </div>
               <div className="space-y-2">
                 <span className="font-mono text-2xl font-black text-primary">02</span>
-                <h4 className="font-bold text-sm uppercase text-on-surface">Curate Your Bag</h4>
+                <h3 className="font-bold text-sm uppercase text-on-surface">Curate Your Bag</h3>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   Add tailored Nehru jackets, coti, or menswear pieces meeting the minimum order threshold.
                 </p>
               </div>
               <div className="space-y-2">
                 <span className="font-mono text-2xl font-black text-primary">03</span>
-                <h4 className="font-bold text-sm uppercase text-on-surface">Apply at Checkout</h4>
+                <h3 className="font-bold text-sm uppercase text-on-surface">Apply at Checkout</h3>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   Paste the promo code into the coupon field in your cart or checkout summary for instant deduction.
                 </p>
@@ -313,9 +313,9 @@ export default function OffersClient({
                     <span className="font-mono text-[10px] text-primary uppercase font-bold tracking-wider">
                       CAPSULE
                     </span>
-                    <h4 className="font-headline-sm text-base font-bold text-on-surface group-hover:text-primary transition-colors mt-1">
+                    <h3 className="font-headline-sm text-base font-bold text-on-surface group-hover:text-primary transition-colors mt-1">
                       {cat.name}
-                    </h4>
+                    </h3>
                   </div>
                   <span className="font-mono text-xs text-on-surface-variant group-hover:text-primary transition-colors mt-4 flex items-center gap-1">
                     Explore &rarr;

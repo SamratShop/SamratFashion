@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Account Notifications | Samrat Fashion",
+  alternates: {
+    canonical: "/account/notifications",
+  },
   robots: {
     index: false,
     follow: false,

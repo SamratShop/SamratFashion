@@ -143,7 +143,7 @@ export function GarmentAnatomySection({ className = "" }: { className?: string }
 
                 {/* Card Bottom: Metric Box */}
                 <div className="pt-6 mt-6 border-t border-neutral-800/80 flex items-baseline justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 font-semibold">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
                     {feature.metricLabel}
                   </span>
                   <span className="font-mono text-2xl font-black text-white">

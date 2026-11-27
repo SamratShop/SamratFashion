@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronRight, Package, ArrowDown, Send } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface Message {
@@ -249,7 +250,7 @@ export default function CustomerTicketDetailClient({ ticketId }: { ticketId: str
         <Link href="/support" className="hover:text-primary transition-colors">
           Support Center
         </Link>
-        <span className="material-symbols-outlined text-xs">chevron_right</span>
+        <ChevronRight className="w-3 h-3" />
         <span className="text-primary font-bold">{ticket.ticketNumber}</span>
       </div>
 
@@ -278,7 +279,7 @@ export default function CustomerTicketDetailClient({ ticketId }: { ticketId: str
               href={`/account/orders/${ticket.orderId._id}`}
               className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline mt-2"
             >
-              <span className="material-symbols-outlined text-sm">package_2</span>
+              <Package className="w-3.5 h-3.5" />
               Linked Order #{ticket.orderId.orderNumber}
             </Link>
           )}
@@ -331,7 +332,7 @@ export default function CustomerTicketDetailClient({ ticketId }: { ticketId: str
           className="fixed bottom-32 right-12 z-40 bg-neutral-900 text-white border border-neutral-700 px-4 py-2 rounded-full shadow-2xl font-mono text-xs uppercase font-bold flex items-center gap-2 hover:bg-neutral-800 transition-colors"
         >
           <span>New messages below</span>
-          <span className="material-symbols-outlined text-sm">arrow_downward</span>
+          <ArrowDown className="w-3.5 h-3.5" />
         </button>
       )}
 
@@ -351,7 +352,7 @@ export default function CustomerTicketDetailClient({ ticketId }: { ticketId: str
               disabled={isSending || !replyBody.trim()}
               className="px-6 py-2.5 bg-primary text-on-primary font-label-caps text-xs font-bold rounded-xl hover:bg-primary-container transition-colors shadow-md disabled:opacity-50 flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-base">send</span>
+              <Send className="w-3.5 h-3.5" />
               {isSending ? "Sending..." : "Send Reply"}
             </button>
           </div>

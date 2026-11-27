@@ -23,7 +23,11 @@ export default async function ShippingReturnsPage() {
   const standardFeeFormatted = `₹${Math.round(settings.standardShippingFee).toLocaleString("en-IN")}`;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 text-on-surface">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="max-w-4xl mx-auto px-4 py-12 text-on-surface outline-none"
+    >
       <h1 className="text-3xl font-extrabold mb-3">Shipping &amp; Returns Policy</h1>
       <p className="text-sm text-on-surface-variant mb-8">
         Transparent Pan-India delivery timelines, shipping rates, and our 7-day return policy.
@@ -110,6 +114,6 @@ export default async function ShippingReturnsPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

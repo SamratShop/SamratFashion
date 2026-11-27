@@ -136,7 +136,11 @@ export function TrackOrderClient({ token }: TrackOrderClientProps) {
   // Loading Skeleton State
   if (isLoading) {
     return (
-      <main className="w-full max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="w-full max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh] outline-none"
+      >
         <div className="w-12 h-12 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center mb-4">
           <RefreshCw className="w-6 h-6 text-primary animate-spin" />
         </div>
@@ -153,7 +157,11 @@ export function TrackOrderClient({ token }: TrackOrderClientProps) {
   // Error States (Invalid, Expired, Revoked, Not Found)
   if (errorCode || !data) {
     return (
-      <main className="w-full max-w-xl mx-auto px-4 py-16 sm:py-24">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="w-full max-w-xl mx-auto px-4 py-16 sm:py-24 outline-none"
+      >
         <div className="bg-surface border border-outline-variant/40 rounded-2xl p-8 sm:p-10 shadow-lg text-center space-y-6">
           <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-amber-500/10 text-amber-600">
             {errorCode === "REVOKED" ? (
@@ -211,7 +219,11 @@ export function TrackOrderClient({ token }: TrackOrderClientProps) {
   const isCancelled = data.status === "CANCELLED";
 
   return (
-    <main className="w-full max-w-4xl mx-auto px-margin-mobile md:px-margin-desktop py-10 sm:py-16 space-y-8">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="w-full max-w-4xl mx-auto px-margin-mobile md:px-margin-desktop py-10 sm:py-16 space-y-8 outline-none"
+    >
       {/* Header Banner */}
       <section className="bg-surface border border-outline-variant/30 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/20 pb-5">

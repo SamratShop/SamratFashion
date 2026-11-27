@@ -84,8 +84,8 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
               <Clock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
               <span>Mon–Sat, 10:00 AM – 7:00 PM IST</span>
             </p>
-            <p className="flex items-center gap-2 text-neutral-500 font-mono text-[11px]">
-              <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+            <p className="flex items-center gap-2 text-neutral-400 font-mono text-[11px]">
+              <MapPin className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
               <span>SAMRAT FASHION &bull; NEW DELHI, INDIA</span>
             </p>
           </div>
@@ -121,7 +121,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             Join our mailing list for new arrivals, festive edits, and seasonal offers from Samrat Fashion.
           </p>
           <NewsletterForm />
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-neutral-400">
             By subscribing, you agree to our{" "}
             <Link href="/privacy" className="underline hover:text-neutral-300 transition-colors">
               Privacy Policy
