@@ -278,16 +278,14 @@ export function ShopCatalogLayout({
       const startX = e.clientX;
       const startWidth = sidebarWidth;
 
+      const containerWidth = containerRef.current
+        ? containerRef.current.getBoundingClientRect().width
+        : 1200;
+      const maxAllowed = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, containerWidth - 320));
+
       const handlePointerMove = (moveEvent: PointerEvent) => {
         const deltaX = moveEvent.clientX - startX;
         const targetWidth = startWidth + deltaX;
-
-        let maxAllowed = MAX_WIDTH;
-        if (containerRef.current) {
-          const containerWidth = containerRef.current.getBoundingClientRect().width;
-          maxAllowed = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, containerWidth - 320));
-        }
-
         const clamped = Math.min(maxAllowed, Math.max(MIN_WIDTH, Math.round(targetWidth)));
         setSidebarWidth(clamped);
       };
@@ -301,11 +299,6 @@ export function ShopCatalogLayout({
         document.body.style.removeProperty("user-select");
 
         const deltaX = upEvent.clientX - startX;
-        let maxAllowed = MAX_WIDTH;
-        if (containerRef.current) {
-          const containerWidth = containerRef.current.getBoundingClientRect().width;
-          maxAllowed = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, containerWidth - 320));
-        }
         const finalWidth = Math.min(maxAllowed, Math.max(MIN_WIDTH, Math.round(startWidth + deltaX)));
         setSidebarWidth(finalWidth);
         try {

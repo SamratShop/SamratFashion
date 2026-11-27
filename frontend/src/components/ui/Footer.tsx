@@ -134,8 +134,8 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             &copy; {new Date().getFullYear()} SAMRAT FASHION. ALL RIGHTS RESERVED.
           </p>
           <div className="flex flex-wrap gap-4 sm:gap-6 font-mono text-[11px]">
-            <Link href="/support#about" className="hover:text-white transition-colors">About Us</Link>
-            <Link href="/support" className="hover:text-white transition-colors">Contact Us</Link>
+            <Link href="/support#about" aria-label="About Samrat Fashion brand" className="hover:text-white transition-colors">About Us</Link>
+            <Link href="/support" aria-label="Contact Samrat Fashion support" className="hover:text-white transition-colors">Contact Us</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/shipping-returns" className="hover:text-white transition-colors">Shipping &amp; Returns</Link>

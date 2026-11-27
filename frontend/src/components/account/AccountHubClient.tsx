@@ -127,30 +127,34 @@ export default function AccountHubClient() {
     fetchAccountData();
   }, [isAuthenticated]);
 
-  if (authLoading) {
+  if (authLoading || (isAuthenticated && isDataLoading)) {
     return (
       <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 sm:space-y-8 pb-8 sm:pb-12 lg:pb-8 animate-pulse">
         <AccountNav currentTab="overview" />
         {/* Header Profile Summary Card Skeleton */}
         <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 min-h-[140px]">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-5 w-full md:w-auto">
             <div className="w-16 h-16 rounded-full bg-surface-container shrink-0" />
-            <div className="space-y-2">
-              <div className="h-7 w-48 bg-surface-container rounded" />
-              <div className="h-4 w-36 bg-surface-container rounded" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <div className="h-7 w-48 max-w-full bg-surface-container rounded" />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                <div className="h-4 w-36 bg-surface-container rounded" />
+                <div className="h-4 w-28 bg-surface-container rounded" />
+                <div className="h-4 w-20 bg-surface-container rounded-full" />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="h-10 w-28 bg-surface-container rounded-xl flex-1 md:flex-initial" />
-            <div className="h-10 w-28 bg-surface-container rounded-xl flex-1 md:flex-initial" />
+            <div className="h-10 bg-surface-container rounded-xl flex-1 md:w-28 md:flex-initial" />
+            <div className="h-10 bg-surface-container rounded-xl flex-1 md:w-28 md:flex-initial" />
           </div>
         </div>
 
         {/* Stat Cards Skeleton */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm min-h-[96px]">
-              <div className="h-3 w-16 bg-surface-container rounded mb-2" />
+            <div key={i} className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm min-h-[96px] h-[96px] flex flex-col justify-between">
+              <div className="h-3 w-16 bg-surface-container rounded mb-1" />
               <div className="h-8 w-12 bg-surface-container rounded" />
             </div>
           ))}
@@ -161,7 +165,7 @@ export default function AccountHubClient() {
           <div className="h-6 w-40 bg-surface-container rounded mb-6" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm flex items-start gap-4 min-h-[120px]">
+              <div key={i} className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm flex items-start gap-4 min-h-[136px]">
                 <div className="w-12 h-12 rounded-xl bg-surface-container shrink-0" />
                 <div className="space-y-2 flex-1">
                   <div className="h-5 w-28 bg-surface-container rounded" />
@@ -208,38 +212,42 @@ export default function AccountHubClient() {
                   {user?.email}
                 </span>
 
-                {user?.phone ? (
-                  <span className="flex items-center gap-1 font-mono font-medium text-on-surface">
-                    <Phone className="w-[15px] h-[15px]" />
-                    {user.phone}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleOpenEditModal}
-                    className="text-primary hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-                  >
-                    <PhoneCall className="w-[15px] h-[15px]" />
-                    + Add Mobile Number
-                  </button>
-                )}
+                <span className="inline-flex items-center min-h-[20px]">
+                  {user?.phone ? (
+                    <span className="flex items-center gap-1 font-mono font-medium text-on-surface">
+                      <Phone className="w-[15px] h-[15px]" />
+                      {user.phone}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleOpenEditModal}
+                      className="text-primary hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <PhoneCall className="w-[15px] h-[15px]" />
+                      + Add Mobile Number
+                    </button>
+                  )}
+                </span>
 
-                {user?.emailVerified ? (
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                    Verified Account
-                  </span>
-                ) : user?.email?.toLowerCase().endsWith(".local") ? (
-                  <span className="bg-neutral-100 text-neutral-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                    Internal Account
-                  </span>
-                ) : (
-                  <Link
-                    href={`/verify-email?email=${encodeURIComponent(user?.email || "")}`}
-                    className="bg-amber-100 text-amber-800 hover:bg-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase transition-colors"
-                  >
-                    Unverified — Verify Now
-                  </Link>
-                )}
+                <span className="inline-flex items-center min-h-[20px]">
+                  {user?.emailVerified ? (
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                      Verified Account
+                    </span>
+                  ) : user?.email?.toLowerCase().endsWith(".local") ? (
+                    <span className="bg-neutral-100 text-neutral-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                      Internal Account
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(user?.email || "")}`}
+                      className="bg-amber-100 text-amber-800 hover:bg-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase transition-colors"
+                    >
+                      Unverified — Verify Now
+                    </Link>
+                  )}
+                </span>
               </div>
             </div>
           </div>
@@ -389,9 +397,9 @@ export default function AccountHubClient() {
 
         {/* Quick Stats Grid: 2 cols on mobile, 4 cols on desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Link href="/account/orders" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px]">
+          <Link href="/account/orders" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Orders</p>
-            <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors">
+            <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
               {isDataLoading ? (
                 <span className="inline-block h-7 w-10 rounded bg-surface-container-high animate-pulse align-middle" aria-label="Loading orders count" />
               ) : (
@@ -400,23 +408,23 @@ export default function AccountHubClient() {
             </div>
           </Link>
 
-          <Link href="/account/addresses" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px]">
+          <Link href="/account/addresses" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Addresses</p>
-            <p className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors">
+            <p className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
               {addresses.length}
             </p>
           </Link>
 
-          <Link href="/account/wishlist" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px]">
+          <Link href="/account/wishlist" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Wishlist</p>
-            <p className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors">
+            <p className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
               {wishlistItems.length}
             </p>
           </Link>
 
-          <Link href="/account/reviews" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px]">
+          <Link href="/account/reviews" className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/20 shadow-sm hover:border-neutral-900 transition-colors group min-h-[96px] h-[96px] flex flex-col justify-between">
             <p className="text-xs font-label-caps text-on-surface-variant uppercase font-bold mb-1">Reviews</p>
-            <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors">
+            <div className="text-2xl font-extrabold text-on-surface group-hover:text-neutral-900 transition-colors tabular-nums h-8 flex items-center">
               {isDataLoading ? (
                 <span className="inline-block h-7 w-10 rounded bg-surface-container-high animate-pulse align-middle" aria-label="Loading reviews count" />
               ) : (
@@ -434,7 +442,7 @@ export default function AccountHubClient() {
             {/* My Orders */}
             <Link
               href="/account/orders"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <Package className="w-6 h-6" />
@@ -448,7 +456,7 @@ export default function AccountHubClient() {
             {/* Special Offers & Coupons */}
             <Link
               href="/offers"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <Tag className="w-6 h-6" />
@@ -462,7 +470,7 @@ export default function AccountHubClient() {
             {/* Address Book */}
             <Link
               href="/account/addresses"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <MapPin className="w-6 h-6" />
@@ -476,7 +484,7 @@ export default function AccountHubClient() {
             {/* My Reviews */}
             <Link
               href="/account/reviews"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <Star className="w-6 h-6" />
@@ -490,7 +498,7 @@ export default function AccountHubClient() {
             {/* Wishlist */}
             <Link
               href="/account/wishlist"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <Heart className="w-6 h-6" />
@@ -504,7 +512,7 @@ export default function AccountHubClient() {
             {/* Support Center */}
             <Link
               href="/support"
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-all flex items-start gap-4 group min-h-[120px]"
+              className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/40 transition-[box-shadow,border-color] flex items-start gap-4 group min-h-[136px]"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                 <CircleHelp className="w-6 h-6" />

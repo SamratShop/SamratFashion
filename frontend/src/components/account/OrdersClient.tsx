@@ -326,7 +326,7 @@ export function OrdersClient() {
               <div
                 key={tab.href}
                 className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-xs font-bold uppercase tracking-wider min-h-[40px] ${
-                  tab.active ? "bg-neutral-950 text-white" : "text-neutral-400"
+                  tab.active ? "bg-neutral-950 text-white" : "text-neutral-600"
                 }`}
               >
                 <span>{tab.label}</span>
@@ -831,7 +831,7 @@ export function OrdersClient() {
               ) : hasMoreOrders ? (
                 /* Sentinel in waiting state */
                 <div className="text-center py-4">
-                  <span className="font-mono text-xs text-neutral-400 uppercase tracking-widest">
+                  <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
                     Scroll down for more orders...
                   </span>
                 </div>

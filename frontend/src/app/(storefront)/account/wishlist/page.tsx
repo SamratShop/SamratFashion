@@ -181,6 +181,8 @@ export default function WishlistPage() {
                   reviewCount={product.reviewCount || 0}
                   selectedColor={selectedColor}
                   tags={product.tags}
+                  priority={idx < 2}
+                  fetchPriority={idx === 0 ? "high" : "auto"}
                 />
               );
             })}

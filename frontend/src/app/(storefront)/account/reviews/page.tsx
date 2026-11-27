@@ -1,10 +1,4 @@
 import CustomerReviewsClient from "@/components/account/CustomerReviewsClient";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "My Reviews",
-  description: "View and write product reviews for your delivered orders.",
-};
 
 export const dynamic = "force-dynamic";
 

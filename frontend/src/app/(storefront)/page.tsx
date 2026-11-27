@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { getActiveCategories, filterStorefrontCategories, CategoryItem } from "@/lib/catalog";
-import * as motion from "motion/react-client";
+import { optimizeCloudinaryUrl } from "@/lib/imageUtils";
 import dynamic from "next/dynamic";
 import { HeroBannerSlider, HeroBannerItem } from "@/components/storefront/HeroBannerSlider";
 import { MarqueeTicker } from "@/components/storefront/MarqueeTicker";
@@ -283,11 +283,9 @@ export default async function Homepage() {
                 const hasValidImage = Boolean(cat.image && (cat.image.startsWith("http://") || cat.image.startsWith("https://") || cat.image.startsWith("/")));
                 const href = getRootCategoryHref(cat);
                 return (
-                  <motion.div
+                  <div
                     key={cat._id}
-                    whileHover={{ y: -4 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    className="h-full"
+                    className="h-full transition-transform duration-200 hover:-translate-y-1"
                   >
                     <Link
                       href={href}
@@ -295,11 +293,11 @@ export default async function Homepage() {
                     >
                     {hasValidImage ? (
                       <Image
-                        src={cat.image as string}
+                        src={optimizeCloudinaryUrl(cat.image as string, 600)}
                         alt={cat.name}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                        className="object-cover object-center opacity-70 group-hover:scale-105 group-hover:opacity-85 transition-all duration-500"
+                        className="object-cover object-center opacity-70 group-hover:scale-105 group-hover:opacity-85 transition-[transform,opacity] duration-500"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 flex flex-col items-center justify-center p-6 border border-neutral-800">
@@ -326,7 +324,7 @@ export default async function Homepage() {
                       )}
                     </div>
                     </Link>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
