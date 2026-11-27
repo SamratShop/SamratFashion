@@ -1,6 +1,8 @@
 "use client";
 
 import { useOrderStore, type Order } from "@/store/useOrderStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
 import { getOrderStatusBadges, ORDER_STATUS_TONE_CLASSES, type OrderDisplayStatusKey } from "@/lib/orderStatus";
 import { SITE_CONFIG } from "@/lib/seo";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
@@ -63,14 +65,10 @@ const ORDER_STATUS_FILTERS: { key: OrderStatusFilter; label: string }[] = [
   { key: "EXPIRED", label: "EXPIRED" },
 ];
 
-export interface OrdersClientProps {
-  initialOrders?: Order[];
-}
-
-export function OrdersClient({ initialOrders = [] }: OrdersClientProps) {
+export function OrdersClient() {
   const router = useRouter();
-  const { orders: storeOrders, isLoading } = useOrderStore();
-  const orders = storeOrders.length > 0 ? storeOrders : initialOrders;
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { orders, fetchOrders, isLoading } = useOrderStore();
 
   // Filter & Search State
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("ALL");
@@ -84,12 +82,12 @@ export function OrdersClient({ initialOrders = [] }: OrdersClientProps) {
   // Sentinel ref for Intersection Observer
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync initialOrders into useOrderStore on mount if store is empty
+  // Initial Fetch
   useEffect(() => {
-    if (initialOrders.length > 0 && useOrderStore.getState().orders.length === 0) {
-      useOrderStore.setState({ orders: initialOrders });
+    if (!authLoading && isAuthenticated) {
+      fetchOrders();
     }
-  }, [initialOrders]);
+  }, [authLoading, isAuthenticated, fetchOrders]);
 
   // Filtered Orders Computation
   const filteredOrders = useMemo(() => {
@@ -317,6 +315,49 @@ export function OrdersClient({ initialOrders = [] }: OrdersClientProps) {
       isShipped: false,
     };
   };
+
+  if (authLoading) {
+    return (
+      <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8 animate-pulse">
+        {/* Navigation Tabs Skeleton */}
+        <div className="relative mb-6 sm:mb-8">
+          <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-1.5 sm:gap-2 pb-1 border-b border-outline-variant/40">
+            {ACCOUNT_TABS.map((tab) => (
+              <div
+                key={tab.href}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-xs font-bold uppercase tracking-wider min-h-[40px] ${
+                  tab.active ? "bg-neutral-950 text-white" : "text-neutral-600"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Header Section Skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 sm:mb-8 pb-6 border-b border-outline-variant/40">
+          <div>
+            <div className="h-9 w-48 bg-surface-container rounded mb-2" />
+            <div className="h-4 w-72 bg-surface-container rounded" />
+          </div>
+        </div>
+
+        {/* Empty State Shell Skeleton */}
+        <div className="text-center py-10 px-6 sm:px-10 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl max-w-lg mx-auto shadow-xs space-y-5">
+          <div className="w-24 h-28 mx-auto rounded-xl bg-surface-container" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 bg-surface-container rounded mx-auto" />
+            <div className="h-4 w-64 bg-surface-container rounded mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <SignInRequiredState context="orders" redirectPath="/account/orders" />;
+  }
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col pb-8 sm:pb-12 lg:pb-8">
