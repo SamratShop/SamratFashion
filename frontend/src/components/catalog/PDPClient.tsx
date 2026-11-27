@@ -607,7 +607,7 @@ export function PDPClient({
           >
             <button
               onClick={closeLightbox}
-              className="absolute top-5 right-5 text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition-all hover:bg-white/20 z-10"
+              className="absolute top-5 right-5 text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition-colors hover:bg-white/20 z-10"
               aria-label="Close lightbox"
             >
               <X className="w-6 h-6" />
@@ -616,14 +616,14 @@ export function PDPClient({
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-all hover:bg-white/20 z-10"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-colors hover:bg-white/20 z-10"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-all hover:bg-white/20 z-10"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 rounded-full p-3 transition-colors hover:bg-white/20 z-10"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-6 h-6" />
@@ -662,7 +662,7 @@ export function PDPClient({
                     <button
                       key={i}
                       onClick={() => setLightboxIndex(i)}
-                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                      className={`w-1.5 h-1.5 rounded-full transition-[background-color,transform] duration-200 ${
                         i === lightboxIndex ? "bg-white scale-125" : "bg-white/40 hover:bg-white/70"
                       }`}
                       aria-label={`View image ${i + 1}`}
@@ -702,7 +702,7 @@ export function PDPClient({
                 relative shrink-0
                 w-[72px] h-[90px] md:w-[78px] md:h-[98px]
                 rounded-lg overflow-hidden
-                border-2 transition-all duration-200
+                border-2 transition-[border-color,box-shadow] duration-200
                 group
                 ${
                   selectedImage === idx
@@ -760,7 +760,7 @@ export function PDPClient({
                   src={currentGalleryImages[selectedImage] || currentGalleryImages[0]}
                   alt={product.name}
                   fill
-                  className="object-contain transition-all duration-500 ease-in-out group-hover:scale-[1.03]"
+                  className="object-contain transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
                   priority
                   loading="eager"
                   fetchPriority="high"
@@ -793,7 +793,7 @@ export function PDPClient({
                 rounded-full p-2
                 text-on-surface/60 hover:text-on-surface
                 opacity-0 group-hover:opacity-100
-                transition-all duration-200
+                transition-[color,opacity] duration-200
                 shadow-sm
                 z-10
               "
@@ -818,7 +818,7 @@ export function PDPClient({
                     p-2.5 rounded-full
                     text-on-surface hover:text-red-500
                     hover:scale-110 active:scale-90
-                    transition-all duration-200
+                    transition-[color,transform] duration-200
                     shadow-md
                     disabled:opacity-50
                   "
@@ -826,7 +826,7 @@ export function PDPClient({
                   aria-label={isGuest ? "Sign in to save to wishlist" : isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                 >
                   <Heart
-                    className={`w-5 h-5 transition-all duration-200 ${
+                    className={`w-5 h-5 transition-[fill,color,transform] duration-200 ${
                       isWishlisted ? "fill-red-500 text-red-500 scale-110" : ""
                     }`}
                   />
@@ -841,7 +841,7 @@ export function PDPClient({
                   p-2.5 rounded-full
                   text-on-surface hover:text-primary
                   hover:scale-110 active:scale-90
-                  transition-all duration-200
+                  transition-[color,transform] duration-200
                   shadow-md
                 "
                 aria-label="Share this product"
@@ -896,7 +896,7 @@ export function PDPClient({
                     border border-outline-variant/40 rounded-full
                     flex items-center justify-center
                     text-on-surface hover:bg-white
-                    shadow-sm transition-all duration-150
+                    shadow-sm transition-[background-color,opacity,transform] duration-150
                     cursor-pointer z-10
                     opacity-80 hover:opacity-100 hover:scale-105 active:scale-95
                   "
@@ -917,7 +917,7 @@ export function PDPClient({
                     border border-outline-variant/40 rounded-full
                     flex items-center justify-center
                     text-on-surface hover:bg-white
-                    shadow-sm transition-all duration-150
+                    shadow-sm transition-[background-color,opacity,transform] duration-150
                     cursor-pointer z-10
                     opacity-80 hover:opacity-100 hover:scale-105 active:scale-95
                   "
@@ -935,7 +935,7 @@ export function PDPClient({
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); setSelectedImage(i); }}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    className={`w-1.5 h-1.5 rounded-full transition-[background-color,transform] duration-200 ${
                       i === selectedImage
                         ? "bg-on-surface scale-125"
                         : "bg-on-surface/30 hover:bg-on-surface/60"
@@ -1007,11 +1007,11 @@ export function PDPClient({
         {/* Breadcrumb Bar */}
         <div className="flex flex-wrap items-center gap-2 text-on-surface-variant font-mono text-xs uppercase tracking-wider">
           <Link href="/" className="hover:text-primary transition-colors shrink-0">HOME</Link>
-          <span className="text-neutral-400 shrink-0">/</span>
+          <span className="text-neutral-500 shrink-0">/</span>
           <Link href="/shop" className="hover:text-primary transition-colors shrink-0">SHOP</Link>
           {product.category && typeof product.category === "object" && product.category.name && (
             <>
-              <span className="text-neutral-400 shrink-0">/</span>
+              <span className="text-neutral-500 shrink-0">/</span>
               <Link
                 href={`/shop?category=${encodeURIComponent(product.category.slug || product.category.name)}`}
                 className="hover:text-primary transition-colors shrink-0 font-bold text-on-surface"
@@ -1039,7 +1039,7 @@ export function PDPClient({
                 >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span className="font-bold">{product.averageRating.toFixed(1)}</span>
-                  <span className="text-neutral-400">({product.reviewCount || 0} reviews)</span>
+                  <span className="text-neutral-500">({product.reviewCount || 0} reviews)</span>
                 </button>
               )}
               {(product.fit || (product.gsm && product.gsm > 0)) && (
@@ -1063,13 +1063,13 @@ export function PDPClient({
           </span>
           {displayMrp && displayMrp > currentPrice && (
             <div className="flex items-center gap-2.5 font-mono">
-              <span className="text-neutral-400 line-through text-base">₹{displayMrp.toLocaleString('en-IN')}</span>
+              <span className="text-neutral-500 line-through text-base">₹{displayMrp.toLocaleString('en-IN')}</span>
               <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-xs font-bold">
                 {product.discount ? `${product.discount}% OFF` : `${Math.round(((displayMrp - currentPrice) / displayMrp) * 100)}% OFF`}
               </span>
             </div>
           )}
-          <span className="font-mono text-neutral-400 text-xs ml-auto">(INCL. TAXES)</span>
+          <span className="font-mono text-neutral-500 text-xs ml-auto">(INCL. TAXES)</span>
         </div>
 
         {/* Color Selection - Dedicated Visual Tiles */}
@@ -1103,7 +1103,7 @@ export function PDPClient({
                     onClick={() => handleColorChange(color)}
                     aria-busy={isSwitching}
                     aria-label={`${color}, ${isSwitching ? "switching" : isSelected ? "selected" : "available"}`}
-                    className={`group/tile relative flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                    className={`group/tile relative flex items-center gap-2.5 p-2 rounded-lg border text-left transition-[border-color,background-color,box-shadow,transform] cursor-pointer ${
                       isSelected
                         ? "border-neutral-900 bg-surface-container-high ring-2 ring-primary ring-offset-1 shadow-xs scale-[1.01]"
                         : "border-outline-variant/60 bg-surface-container-lowest hover:border-neutral-900 hover:bg-surface-container-low"
@@ -1235,7 +1235,7 @@ export function PDPClient({
               <button
                 type="button"
                 onClick={() => router.push("/cart")}
-                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-2 border-2 border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 shadow-xs cursor-pointer"
+                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-2 border-2 border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 shadow-xs cursor-pointer"
               >
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>IN BAG · VIEW CART</span>
@@ -1246,7 +1246,7 @@ export function PDPClient({
                 onClick={handleAddToCart}
                 disabled={!selectedVariant || !isSelectedVariantAvailable || isCartLoading}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-2 border-2 border-neutral-950 bg-white text-neutral-950 hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex-1 h-12 font-mono uppercase tracking-wider font-bold text-xs rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2 border-2 border-neutral-950 bg-white text-neutral-950 hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isCartLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1266,7 +1266,7 @@ export function PDPClient({
             onClick={handleBuyNow}
             disabled={!selectedVariant || !isSelectedVariantAvailable || isBuyNowLoading}
             whileTap={{ scale: 0.98 }}
-            className="w-full h-12 bg-neutral-950 text-white font-mono uppercase tracking-wider font-bold text-xs rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full h-12 bg-neutral-950 text-white font-mono uppercase tracking-wider font-bold text-xs rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-[background-color,transform,opacity] flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isBuyNowLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>
@@ -1432,7 +1432,7 @@ export function PDPClient({
             return (
               <div
                 key={idx}
-                className={`rounded-2xl border transition-all duration-200 overflow-hidden bg-surface-container-lowest ${
+                className={`rounded-2xl border transition-[border-color,box-shadow] duration-200 overflow-hidden bg-surface-container-lowest ${
                   isOpen
                     ? "border-neutral-900/40 shadow-xs ring-1 ring-neutral-900/5 border-l-4 border-l-neutral-950"
                     : "border-outline-variant/30 hover:border-outline-variant/70"
@@ -1455,7 +1455,7 @@ export function PDPClient({
                     </h3>
                   </div>
                   <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-[color,background-color,transform] duration-300 ${
                       isOpen
                         ? "rotate-180 bg-neutral-950 text-white"
                         : "bg-surface-container text-neutral-500 group-hover:bg-neutral-950 group-hover:text-white"
@@ -1577,7 +1577,7 @@ export function PDPClient({
               ₹{currentPrice.toLocaleString("en-IN")}
             </span>
             {displayMrp && displayMrp > currentPrice && (
-              <span className="text-[11px] text-neutral-400 line-through">
+              <span className="text-[11px] text-neutral-500 line-through">
                 ₹{displayMrp.toLocaleString("en-IN")}
               </span>
             )}
@@ -1597,7 +1597,7 @@ export function PDPClient({
             onClick={handleWishlistToggle}
             title={isGuest ? "Sign in to save to wishlist" : isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             aria-label={isGuest ? "Sign in to save to wishlist" : isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            className="w-11 h-11 flex items-center justify-center rounded-lg border border-outline-variant/50 bg-surface-container-lowest text-on-surface active:scale-95 transition-all"
+            className="w-11 h-11 flex items-center justify-center rounded-lg border border-outline-variant/50 bg-surface-container-lowest text-on-surface active:scale-95 transition-transform"
           >
             <Heart
               className={`w-5 h-5 transition-colors ${
@@ -1610,7 +1610,7 @@ export function PDPClient({
             <button
               type="button"
               onClick={() => router.push("/cart")}
-              className="h-11 px-3 sm:px-4 bg-emerald-50 border border-emerald-600 text-emerald-950 font-mono text-[11px] uppercase tracking-wider font-bold rounded-lg hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="h-11 px-3 sm:px-4 bg-emerald-50 border border-emerald-600 text-emerald-950 font-mono text-[11px] uppercase tracking-wider font-bold rounded-lg hover:bg-emerald-100 active:scale-95 transition-[background-color,transform] flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-3.5 h-3.5 text-emerald-600" />
               <span>IN BAG</span>
@@ -1620,7 +1620,7 @@ export function PDPClient({
               type="button"
               onClick={handleAddToCart}
               disabled={!selectedVariant || !isSelectedVariantAvailable || isCartLoading}
-              className="h-11 px-3 sm:px-4 bg-white border border-neutral-900 text-neutral-950 font-mono text-[11px] uppercase tracking-wider font-bold rounded-lg hover:bg-neutral-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              className="h-11 px-3 sm:px-4 bg-white border border-neutral-900 text-neutral-950 font-mono text-[11px] uppercase tracking-wider font-bold rounded-lg hover:bg-neutral-100 active:scale-95 transition-[background-color,transform,opacity] flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               {isCartLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingBag className="w-3.5 h-3.5" />}
               <span>ADD TO CART</span>
@@ -1631,7 +1631,7 @@ export function PDPClient({
             type="button"
             onClick={handleBuyNow}
             disabled={!selectedVariant || !isSelectedVariantAvailable || isBuyNowLoading}
-            className="h-11 px-4 sm:px-5 bg-neutral-950 text-white font-mono text-xs uppercase tracking-wider font-bold rounded-lg shadow-sm hover:bg-neutral-800 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            className="h-11 px-4 sm:px-5 bg-neutral-950 text-white font-mono text-xs uppercase tracking-wider font-bold rounded-lg shadow-sm hover:bg-neutral-800 active:scale-95 transition-[background-color,transform,opacity] flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
           >
             {isBuyNowLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>BUY NOW</span>
