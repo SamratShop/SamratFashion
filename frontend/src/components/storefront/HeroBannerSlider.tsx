@@ -198,7 +198,7 @@ export function HeroBannerSlider({
           >
             {/* 1. Background Image (Absolute fill) */}
             <div className="absolute inset-0 w-full h-full">
-              <div className="relative w-full h-full hidden sm:block">
+              <div className="relative w-full h-full">
                 <Image
                   src={optimizeCloudinaryUrl(currentBanner.image, 1920)}
                   alt={currentBanner.title || "Samrat Fashion Banner"}
@@ -206,19 +206,7 @@ export function HeroBannerSlider({
                   priority={currentIndex === 0}
                   loading={currentIndex === 0 ? "eager" : "lazy"}
                   fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                  sizes="(max-width: 1024px) 100vw, 1920px"
-                  className="object-cover object-center"
-                />
-              </div>
-              <div className="relative w-full h-full block sm:hidden">
-                <Image
-                  src={optimizeCloudinaryUrl(currentBanner.mobileImage || currentBanner.image, 640)}
-                  alt={currentBanner.title || "Samrat Fashion Banner"}
-                  fill
-                  priority={currentIndex === 0}
-                  loading={currentIndex === 0 ? "eager" : "lazy"}
-                  fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                  sizes="(max-width: 640px) 360px, 100vw"
+                  sizes="(max-width: 640px) 360px, (max-width: 1024px) 100vw, 1920px"
                   className="object-cover object-center"
                 />
               </div>
@@ -315,7 +303,7 @@ export function HeroBannerSlider({
         <div className="absolute inset-0 w-full h-full">
           {/* 1. Background Image (Absolute fill) */}
           <div className="absolute inset-0 w-full h-full">
-            <div className="relative w-full h-full hidden sm:block">
+            <div className="relative w-full h-full">
               <Image
                 src={optimizeCloudinaryUrl(currentBanner.image, 1920)}
                 alt={currentBanner.title || "Samrat Fashion Banner"}
@@ -323,19 +311,7 @@ export function HeroBannerSlider({
                 priority={currentIndex === 0}
                 loading={currentIndex === 0 ? "eager" : "lazy"}
                 fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                sizes="(max-width: 1024px) 100vw, 1920px"
-                className="object-cover object-center"
-              />
-            </div>
-            <div className="relative w-full h-full block sm:hidden">
-              <Image
-                src={optimizeCloudinaryUrl(currentBanner.mobileImage || currentBanner.image, 640)}
-                alt={currentBanner.title || "Samrat Fashion Banner"}
-                fill
-                priority={currentIndex === 0}
-                loading={currentIndex === 0 ? "eager" : "lazy"}
-                fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                sizes="(max-width: 640px) 360px, 100vw"
+                sizes="(max-width: 640px) 360px, (max-width: 1024px) 100vw, 1920px"
                 className="object-cover object-center"
               />
             </div>
