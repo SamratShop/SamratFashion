@@ -10,11 +10,43 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Plus, X, BadgeCheck, MapPin, Truck, Lock } from "lucide-react";
 import Image from "next/image";
 
-import Script from "next/script";
 import { api } from "@/lib/api";
 import { formatCityStatePin, cleanAddressLine } from "@/lib/addressFormat";
 import { resolveCheckoutVerificationRoute } from "@/lib/checkoutRouting";
 import { optimizeCloudinaryUrl } from "@/lib/imageUtils";
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    if ((window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => {
+        existing.remove();
+        resolve(false);
+      }, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      script.remove();
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+}
 
 function CheckoutSkeleton() {
   return (
@@ -333,7 +365,13 @@ export function CheckoutClient() {
         }
       };
 
-      if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      // Ensure Razorpay SDK is loaded on demand before opening checkout modal
+      let hasRazorpay = typeof window !== 'undefined' && !!(window as any).Razorpay;
+      if (!hasRazorpay) {
+        hasRazorpay = await loadRazorpayScript();
+      }
+
+      if (hasRazorpay && typeof window !== 'undefined' && (window as any).Razorpay) {
         const rzp = new (window as any).Razorpay(options);
         
         rzp.on('payment.failed', async function (response: any) {
@@ -387,7 +425,6 @@ export function CheckoutClient() {
 
   return (
     <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <main
         id="main-content"
         tabIndex={-1}

@@ -7,20 +7,38 @@ import { Trash2, ShoppingBag, ShieldCheck, Heart } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
-import { SignInRequiredState } from "@/components/auth/SignInRequiredState";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { optimizeCloudinaryUrl } from "@/lib/imageUtils";
+
+const SignInRequiredState = dynamic(
+  () => import("@/components/auth/SignInRequiredState").then((m) => m.SignInRequiredState),
+  { ssr: false }
+);
 
 export default function CartPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const { items, summary, coupon, isLoading, updateQuantity, removeItem, applyCoupon, removeCoupon } = useCartStore();
+  const { items, summary, coupon, isLoading, fetchCart, updateQuantity, removeItem, applyCoupon, removeCoupon } = useCartStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   
   const [movingToWishlist, setMovingToWishlist] = useState<string | null>(null);
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+
+  // Parallel fetch on mount: initiate cart fetch immediately
+  // alongside the auth check with skipAuthExpired flag to prevent unauthenticated
+  // 401s from triggering an auth-expired redirect to /login.
+  useEffect(() => {
+    fetchCart({ skipAuthExpired: true });
+  }, [fetchCart]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (items.length === 0) fetchCart();
+    }
+  }, [authLoading, isAuthenticated, items.length, fetchCart]);
 
   // Track view_cart event on mount
   useEffect(() => {
