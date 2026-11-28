@@ -102,9 +102,6 @@ export function ShopCatalogLayout({
 
   useEffect(() => {
     if (categories && themes) {
-      setCategoryList(filterStorefrontCategories(categories));
-      setThemeList(themes);
-      setLoadingFilters(false);
       return;
     }
 

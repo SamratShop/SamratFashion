@@ -238,7 +238,8 @@ export default async function Homepage() {
           displayHeroBanners = [
             {
               _id: "default-menswear-hero",
-              image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=2000&auto=format&fit=crop",
+              image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=75&w=1920&auto=format&fit=crop",
+              mobileImage: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=75&w=640&auto=format&fit=crop",
               title: "Tailored Indian Menswear & Nehru Jackets | Samrat Fashion 2026",
               subtitle: "Structured Nehru jackets, coti, and festive menswear crafted in breathable woven fabrics with express shipping across India.",
               ctaLabel: firstCategory ? `EXPLORE ${firstCategory.name.toUpperCase()}` : "EXPLORE COLLECTION",

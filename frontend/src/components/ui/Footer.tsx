@@ -13,7 +13,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
   const filteredCategories = filterStorefrontCategories(categories || []);
 
   return (
-    <footer className="bg-neutral-950 text-neutral-300 font-body-sm text-body-sm w-full border-t border-neutral-800 mt-16 sm:mt-20 pb-28 lg:pb-10 pb-safe">
+    <footer className="bg-neutral-950 text-neutral-300 font-body-sm text-body-sm w-full border-t border-neutral-800 mt-16 sm:mt-20 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-10">
       {/* Value Proposition Strip */}
       <div className="border-b border-neutral-800/80 py-6 sm:py-8 px-margin-mobile md:px-margin-desktop">
         <div className="max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
@@ -21,7 +21,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
               <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
-            <div>
+            <div className="min-h-[40px] flex flex-col justify-center">
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Free Express Shipping</p>
               <p className="text-[10px] sm:text-[12px] text-neutral-400 mt-0.5 leading-tight">{formatFreeShippingRule(freeShippingThreshold)}</p>
             </div>
@@ -30,7 +30,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
               <Shirt className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
-            <div>
+            <div className="min-h-[40px] flex flex-col justify-center">
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Tailored Craftsmanship</p>
               <p className="text-[10px] sm:text-[12px] text-neutral-400 mt-0.5 leading-tight">Structured fit &amp; breathable weaves</p>
             </div>
@@ -39,7 +39,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
               <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
-            <div>
+            <div className="min-h-[40px] flex flex-col justify-center">
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">7-Day Easy Returns</p>
               <p className="text-[10px] sm:text-[12px] text-neutral-400 mt-0.5 leading-tight">Doorstep pickup &amp; easy returns</p>
             </div>
@@ -48,7 +48,7 @@ export function Footer({ categories }: { categories?: CategoryItem[] }) {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0 mt-0.5">
               <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-100" />
             </div>
-            <div>
+            <div className="min-h-[40px] flex flex-col justify-center">
               <p className="font-mono text-[11px] sm:text-xs uppercase font-bold text-neutral-100 leading-tight">Secure Payments</p>
               <p className="text-[10px] sm:text-[12px] text-neutral-400 mt-0.5 leading-tight">Razorpay encrypted checkout</p>
             </div>

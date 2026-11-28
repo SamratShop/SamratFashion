@@ -4,7 +4,6 @@ import { serverFetch } from "@/lib/serverApi";
 import { ShopCatalogLayout } from "@/components/catalog/ShopCatalogLayout";
 import { ShopProductGrid } from "@/components/catalog/ShopProductGrid";
 import { ProductCardProps } from "@/components/catalog/ProductCard";
-import { Suspense } from "react";
 import { getActiveCategories, getActiveThemes, filterStorefrontCategories } from "@/lib/catalog";
 import { getBreadcrumbJsonLd, getCollectionPageJsonLd, getFaqPageJsonLd, getCategoryFaqs } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -259,21 +258,19 @@ export default async function ShopPage({
         data={getFaqPageJsonLd(getCategoryFaqs(activeCat))}
       />
       <ShopSearchTracker query={activeQuery} totalResults={total} />
-      <Suspense fallback={<div className="h-96 w-full animate-pulse bg-surface-container-low rounded-2xl" />}>
-        <ShopCatalogLayout
+      <ShopCatalogLayout
+        products={products}
+        total={total}
+        currentSort={currentSort}
+        activeQuery={activeQuery}
+        categories={categories}
+        themes={themes}
+      >
+        <ShopProductGrid
           products={products}
           total={total}
-          currentSort={currentSort}
-          activeQuery={activeQuery}
-          categories={categories}
-          themes={themes}
-        >
-          <ShopProductGrid
-            products={products}
-            total={total}
-          />
-        </ShopCatalogLayout>
-      </Suspense>
+        />
+      </ShopCatalogLayout>
     </main>
   );
 }

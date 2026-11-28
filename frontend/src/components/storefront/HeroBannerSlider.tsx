@@ -166,66 +166,39 @@ export function HeroBannerSlider({
       className={`relative w-full min-h-[500px] sm:min-h-[560px] md:min-h-[600px] lg:h-[700px] bg-neutral-950 overflow-hidden group ${className}`}
     >
       {/* Animated Slide Canvas */}
-      <AnimatePresence initial={false} custom={direction}>
-        <motion.div
-          key={currentIndex}
-          custom={direction}
-          variants={{
-            enter: (dir: number) => ({
-              opacity: 0,
-              x: dir > 0 ? 30 : -30,
-            }),
-            center: {
-              zIndex: 1,
-              opacity: 1,
-              x: 0,
-            },
-            exit: (dir: number) => ({
-              zIndex: 0,
-              opacity: 0,
-              x: dir > 0 ? -30 : 30,
-            }),
-          }}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            opacity: { duration: 0.45, ease: "easeInOut" },
-            x: { duration: 0.45, ease: "easeOut" },
-          }}
-          className="absolute inset-0 w-full h-full"
-        >
-          {/* 1. Background Image (Absolute fill) */}
-          <div className="absolute inset-0 w-full h-full">
-            {currentBanner.mobileImage ? (
-              <>
-                <div className="relative w-full h-full hidden sm:block">
-                  <Image
-                    src={optimizeCloudinaryUrl(currentBanner.image, 1920)}
-                    alt={currentBanner.title || "Samrat Fashion Banner"}
-                    fill
-                    priority={currentIndex === 0}
-                    loading={currentIndex === 0 ? "eager" : "lazy"}
-                    fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                    sizes="100vw"
-                    className="object-cover object-center"
-                  />
-                </div>
-                <div className="relative w-full h-full block sm:hidden">
-                  <Image
-                    src={optimizeCloudinaryUrl(currentBanner.mobileImage, 828)}
-                    alt={currentBanner.title || "Samrat Fashion Banner"}
-                    fill
-                    priority={currentIndex === 0}
-                    loading={currentIndex === 0 ? "eager" : "lazy"}
-                    fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                    sizes="100vw"
-                    className="object-cover object-center"
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="relative w-full h-full">
+      {slideCount > 1 ? (
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={currentIndex}
+            custom={direction}
+            variants={{
+              enter: (dir: number) => ({
+                opacity: 0,
+                x: dir > 0 ? 30 : -30,
+              }),
+              center: {
+                zIndex: 1,
+                opacity: 1,
+                x: 0,
+              },
+              exit: (dir: number) => ({
+                zIndex: 0,
+                opacity: 0,
+                x: dir > 0 ? -30 : 30,
+              }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              opacity: { duration: 0.45, ease: "easeInOut" },
+              x: { duration: 0.45, ease: "easeOut" },
+            }}
+            className="absolute inset-0 w-full h-full"
+          >
+            {/* 1. Background Image (Absolute fill) */}
+            <div className="absolute inset-0 w-full h-full">
+              <div className="relative w-full h-full hidden sm:block">
                 <Image
                   src={optimizeCloudinaryUrl(currentBanner.image, 1920)}
                   alt={currentBanner.title || "Samrat Fashion Banner"}
@@ -233,11 +206,139 @@ export function HeroBannerSlider({
                   priority={currentIndex === 0}
                   loading={currentIndex === 0 ? "eager" : "lazy"}
                   fetchPriority={currentIndex === 0 ? "high" : "auto"}
-                  sizes="100vw"
+                  sizes="(max-width: 1024px) 100vw, 1920px"
                   className="object-cover object-center"
                 />
               </div>
+              <div className="relative w-full h-full block sm:hidden">
+                <Image
+                  src={optimizeCloudinaryUrl(currentBanner.mobileImage || currentBanner.image, 640)}
+                  alt={currentBanner.title || "Samrat Fashion Banner"}
+                  fill
+                  priority={currentIndex === 0}
+                  loading={currentIndex === 0 ? "eager" : "lazy"}
+                  fetchPriority={currentIndex === 0 ? "high" : "auto"}
+                  sizes="(max-width: 640px) 360px, 100vw"
+                  className="object-cover object-center"
+                />
+              </div>
+            </div>
+
+            {/* 2. Focused Scrim: protects text readability without darkening entire image */}
+            {overlayClass && (
+              <div className={`absolute inset-0 pointer-events-none transition-opacity ${overlayClass}`} />
             )}
+
+            {/* 3. Foreground Content: Title, Subtitle, Shop Now & Offers Buttons */}
+            {hasContent && (
+              <div className="absolute inset-0 z-10 w-full h-full flex flex-col justify-end pointer-events-none">
+                <div className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-14 sm:pb-16 md:pb-20">
+                  <div
+                    className={`pointer-events-auto max-w-3xl space-y-3 sm:space-y-4 ${
+                      currentBanner.textAlignment === "CENTER"
+                        ? "mx-auto text-center flex flex-col items-center"
+                        : currentBanner.textAlignment === "RIGHT"
+                        ? "ml-auto text-right flex flex-col items-end"
+                        : "text-left"
+                    }`}
+                  >
+                    {/* Campaign / Drop Tag */}
+                    {currentBanner.campaignTag && (
+                      <div
+                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-md ${
+                          isDarkText
+                            ? "bg-neutral-900/10 border border-neutral-900/20 text-neutral-900"
+                            : "bg-neutral-950/70 border border-neutral-700/60 text-white shadow-xs"
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span className="font-mono text-[10px] sm:text-[11px] tracking-[0.16em] uppercase font-bold">
+                          {currentBanner.campaignTag}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Banner Title */}
+                    {currentBanner.title && (
+                      <h1
+                        className={`font-headline-lg text-3xl sm:text-5xl lg:text-6xl font-black uppercase tracking-[-0.03em] leading-[1.02] drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] ${
+                          isDarkText ? "text-neutral-950 drop-shadow-none" : "text-white"
+                        }`}
+                      >
+                        {currentBanner.title.replace(/\s*\/\/\s*/g, " · ")}
+                      </h1>
+                    )}
+
+                    {/* Banner Subtitle */}
+                    {currentBanner.subtitle && (
+                      <p
+                        className={`font-body-md text-sm sm:text-base md:text-lg max-w-xl line-clamp-2 leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)] ${
+                          isDarkText ? "text-neutral-800 drop-shadow-none" : "text-neutral-100"
+                        }`}
+                      >
+                        {currentBanner.subtitle}
+                      </p>
+                    )}
+
+                    {/* Shop Now & View Offers Buttons */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 sm:pt-3">
+                      <Link
+                        href={currentBanner.ctaUrl || "/shop"}
+                        onClick={() => handleBannerClick(currentBanner._id)}
+                        className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:py-4 rounded-md font-mono text-xs uppercase tracking-[0.15em] font-bold transition-all shadow-lg min-h-[44px] ${
+                          isDarkText
+                            ? "bg-neutral-950 text-white hover:bg-neutral-800"
+                            : "bg-white text-neutral-950 hover:bg-neutral-200"
+                        }`}
+                      >
+                        <span>{currentBanner.ctaLabel || "SHOP NOW"}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                      <Link
+                        href="/offers"
+                        className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:py-4 rounded-md font-mono text-xs uppercase tracking-[0.15em] font-bold transition-all backdrop-blur-md min-h-[44px] border ${
+                          isDarkText
+                            ? "bg-neutral-950/10 border-neutral-950/20 text-neutral-950 hover:bg-neutral-950/20"
+                            : "bg-white/10 border-white/25 text-white hover:bg-white hover:text-neutral-950"
+                        }`}
+                      >
+                        <span>VIEW SPECIAL OFFERS</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      ) : (
+        <div className="absolute inset-0 w-full h-full">
+          {/* 1. Background Image (Absolute fill) */}
+          <div className="absolute inset-0 w-full h-full">
+            <div className="relative w-full h-full hidden sm:block">
+              <Image
+                src={optimizeCloudinaryUrl(currentBanner.image, 1920)}
+                alt={currentBanner.title || "Samrat Fashion Banner"}
+                fill
+                priority={currentIndex === 0}
+                loading={currentIndex === 0 ? "eager" : "lazy"}
+                fetchPriority={currentIndex === 0 ? "high" : "auto"}
+                sizes="(max-width: 1024px) 100vw, 1920px"
+                className="object-cover object-center"
+              />
+            </div>
+            <div className="relative w-full h-full block sm:hidden">
+              <Image
+                src={optimizeCloudinaryUrl(currentBanner.mobileImage || currentBanner.image, 640)}
+                alt={currentBanner.title || "Samrat Fashion Banner"}
+                fill
+                priority={currentIndex === 0}
+                loading={currentIndex === 0 ? "eager" : "lazy"}
+                fetchPriority={currentIndex === 0 ? "high" : "auto"}
+                sizes="(max-width: 640px) 360px, 100vw"
+                className="object-cover object-center"
+              />
+            </div>
           </div>
 
           {/* 2. Focused Scrim: protects text readability without darkening entire image */}
@@ -249,10 +350,7 @@ export function HeroBannerSlider({
           {hasContent && (
             <div className="absolute inset-0 z-10 w-full h-full flex flex-col justify-end pointer-events-none">
               <div className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-14 sm:pb-16 md:pb-20">
-                <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+                <div
                   className={`pointer-events-auto max-w-3xl space-y-3 sm:space-y-4 ${
                     currentBanner.textAlignment === "CENTER"
                       ? "mx-auto text-center flex flex-col items-center"
@@ -324,12 +422,12 @@ export function HeroBannerSlider({
                       <span>VIEW SPECIAL OFFERS</span>
                     </Link>
                   </div>
-                </motion.div>
+                </div>
               </div>
             </div>
           )}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Manual Navigation Controls (Desktop hover or focus) */}
       {slideCount > 1 && (
