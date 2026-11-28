@@ -196,12 +196,19 @@ export function CheckoutClient() {
     }
   };
 
+  // Parallel fetch on mount: initiate address and cart fetches immediately
+  // alongside the auth check instead of waiting for a sequential waterfall.
+  useEffect(() => {
+    fetchAddresses();
+    fetchCart();
+  }, [fetchAddresses, fetchCart]);
+
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      fetchAddresses();
-      fetchCart();
+      if (addresses.length === 0) fetchAddresses();
+      if (items.length === 0) fetchCart();
     }
-  }, [authLoading, isAuthenticated, fetchAddresses, fetchCart]);
+  }, [authLoading, isAuthenticated, addresses.length, items.length, fetchAddresses, fetchCart]);
 
   // Track begin_checkout event on mount
   useEffect(() => {

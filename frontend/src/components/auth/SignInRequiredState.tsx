@@ -119,7 +119,7 @@ export function SignInRequiredState({
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-16 sm:py-24 flex items-center justify-center outline-none"
+      className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-16 sm:py-24 flex items-center justify-center min-h-[720px] outline-none"
     >
       <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant/40 rounded-2xl p-6 sm:p-10 text-center shadow-sm space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-surface-container text-on-surface flex items-center justify-center mx-auto border border-outline-variant/30">
