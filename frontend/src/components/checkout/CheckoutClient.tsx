@@ -30,14 +30,20 @@ function loadRazorpayScript(): Promise<boolean> {
     );
     if (existing) {
       existing.addEventListener("load", () => resolve(true), { once: true });
-      existing.addEventListener("error", () => resolve(false), { once: true });
+      existing.addEventListener("error", () => {
+        existing.remove();
+        resolve(false);
+      }, { once: true });
       return;
     }
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.onerror = () => {
+      script.remove();
+      resolve(false);
+    };
     document.body.appendChild(script);
   });
 }
