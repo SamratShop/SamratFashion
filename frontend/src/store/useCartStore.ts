@@ -81,7 +81,7 @@ interface CartState {
   isLoading: boolean;
   error: string | null;
   
-  fetchCart: () => Promise<void>;
+  fetchCart: (opts?: { skipAuthExpired?: boolean }) => Promise<void>;
   addItem: (productId: string, variantId: string, quantity: number, customDesignId?: string, isCustomized?: boolean, customConfigurations?: any[], designFiles?: any[], customizationNotes?: string) => Promise<void>;
   updateQuantity: (productId: string, variantId: string, quantity: number) => Promise<void>;
   removeItem: (productId: string, variantId: string, cartItemId?: string) => Promise<void>;
@@ -97,10 +97,13 @@ export const useCartStore = create<CartState>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchCart: async () => {
+  fetchCart: async (opts?: { skipAuthExpired?: boolean }) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await api.get("/cart");
+      const config = opts?.skipAuthExpired
+        ? { headers: { "x-skip-auth-expired": "true" } }
+        : undefined;
+      const res = await api.get("/cart", config);
       set({
         items: res.data.data.items,
         coupon: res.data.data.coupon || null,

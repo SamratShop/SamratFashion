@@ -22,7 +22,7 @@ interface AddressState {
   isLoading: boolean;
   error: string | null;
   
-  fetchAddresses: () => Promise<void>;
+  fetchAddresses: (opts?: { skipAuthExpired?: boolean }) => Promise<void>;
   createAddress: (address: Omit<Address, '_id' | 'isDefault'> & { isDefault?: boolean }) => Promise<Address>;
   updateAddress: (id: string, address: Partial<Address>) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
@@ -34,10 +34,13 @@ export const useAddressStore = create<AddressState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchAddresses: async () => {
+  fetchAddresses: async (opts?: { skipAuthExpired?: boolean }) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await api.get("/addresses");
+      const config = opts?.skipAuthExpired
+        ? { headers: { "x-skip-auth-expired": "true" } }
+        : undefined;
+      const res = await api.get("/addresses", config);
       set({ addresses: res.data.data });
     } catch (error: any) {
       if (error.response?.status !== 401) {

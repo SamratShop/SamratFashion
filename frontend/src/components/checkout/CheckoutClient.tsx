@@ -197,10 +197,11 @@ export function CheckoutClient() {
   };
 
   // Parallel fetch on mount: initiate address and cart fetches immediately
-  // alongside the auth check instead of waiting for a sequential waterfall.
+  // alongside the auth check with skipAuthExpired flag to prevent unauthenticated
+  // 401s from triggering an auth-expired redirect to /login.
   useEffect(() => {
-    fetchAddresses();
-    fetchCart();
+    fetchAddresses({ skipAuthExpired: true });
+    fetchCart({ skipAuthExpired: true });
   }, [fetchAddresses, fetchCart]);
 
   useEffect(() => {
