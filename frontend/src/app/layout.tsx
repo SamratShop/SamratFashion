@@ -123,6 +123,8 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://samratfashion-tbec.onrender.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://samratfashion-tbec.onrender.com" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
       </head>
       <body
